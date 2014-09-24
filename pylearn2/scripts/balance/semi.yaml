@@ -1,0 +1,91 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.tfd_semi.TFDSemi {
+        which_set: 'semisupervised',
+        one_hot: 1,
+        scale: True,
+        shuffle: True
+    },
+    model: !obj:pylearn2.models.bal_mlp.BalMLP {
+        layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h0',
+                     dim: 1000,
+                     irange: .001,
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h1',
+                     dim: 1000,
+                     irange: .001,
+                 },  !obj:pylearn2.models.mlp.FlattenerLayer {
+                     raw_layer: !obj:pylearn2.models.mlp.CompositeLayer {
+                         layer_name: 'composite',
+                         layers: [ !obj:pylearn2.models.mlp.Linear {
+                                     layer_name: 'y_h',
+                                     dim: 7,
+                                     irange: .001,
+                             }, !obj:pylearn2.models.mlp.Linear {
+                                     layer_name: 'z_h',
+                                     dim: 393, 
+                                     irange: .001,
+                             } ]
+                      }
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h_2',
+                     dim: 1000,
+                     irange: .001,
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h_1',
+                     dim: 1000,
+                     irange: .001,
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h_0',
+                     dim: 2304,
+                     irange: .001,
+                 }
+                ],
+        nvis: 2304,
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 256,
+        learning_rate: .00000001,
+        monitoring_dataset:
+            {
+                'train' : *train,
+                'valid' : !obj:pylearn2.datasets.tfd_semi.TFDSemi {
+                              which_set: 'valid',
+                              one_hot: 1,
+                              scale: True,
+                              shuffle: True,
+                          },
+            },
+        monitoring_costs: {'misclass': !obj:pylearn2.costs.mlp.layer_cost.FlattenerMisclass {
+                          }},
+        #monitoring_batches: 3,
+        #monitoring_batch_size: 428,
+        #monitor_iteration_mode: 'random_slice',
+        cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
+            !obj:pylearn2.costs.mlp.layer_cost.FlattenerCost {
+            }, !obj:pylearn2.costs.mlp.layer_cost.MLPAE {
+            }
+            ]
+        },
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.MonitorBased {
+                    channel_name: "valid_term_1_ae_mse",
+                    prop_decrease: 0.,
+                    N: 1000
+                },
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: 2000
+                }
+            ]
+        }
+    },
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'valid_term_1_ae_mse',
+             save_path: "model.pkl"
+        }
+    ]
+}
