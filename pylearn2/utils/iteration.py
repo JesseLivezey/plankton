@@ -763,7 +763,6 @@ class FiniteDatasetIterator(object):
         else:
             assert len(convert) == len(source)
             self._convert = convert
-
         for i, (so, sp, dt) in enumerate(safe_izip(source,
                                                    sub_spaces,
                                                    self._raw_data)):
