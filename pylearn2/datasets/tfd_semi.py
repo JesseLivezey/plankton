@@ -4,13 +4,13 @@
     WRITEME
 """
 import numpy as np
-from pylearn2.datasets import dense_design_matrix
+from pylearn2.datasets.semi_supervised import SemiSupervised
 from pylearn2.utils.serial import load
 from pylearn2.utils.rng import make_np_rng
 from pylearn2.utils import contains_nan
 
 
-class TFDSemi(dense_design_matrix.DenseDesignMatrix):
+class TFDSemi(SemiSupervised):
     """
     Pylearn2 wrapper for the Toronto Face Dataset.
     http://aclab.ca/users/josh/TFD.html
