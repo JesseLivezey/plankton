@@ -47,7 +47,7 @@ class TFDSemi(SemiSupervised):
                  example_range=None, center=False, scale=False,
                  shuffle=False, one_hot=False, rng=None, seed=132987,
                  preprocessor=None, axes=('b', 0, 1, 'c')):
-        n_copy = 10
+
         if which_set not in self.mapper.keys():
             raise ValueError("Unrecognized which_set value: %s. Valid values" +
                              "are %s." % (str(which_set),
@@ -85,26 +85,32 @@ class TFDSemi(SemiSupervised):
         # get images and cast to float32
         data_x = data['images'][set_indices]
         if self.mapper[which_set] == 5:
-            unsup_x = data['images'][unsup_indices]
-            for ii in xrange(n_copy):
-                data_x = np.vstack((data_x, unsup_x))
+            data_v = data['images'][unsup_indices]
         data_x = np.cast['float32'](data_x)
+        data_v = np.cast['float32'])(data_v)
         data_x = data_x[ex_range]
         # create dense design matrix from topological view
         data_x = data_x.reshape(data_x.shape[0], image_size ** 2)
+        data_v = data_v.reshape(data_v.shape[0], image_size ** 2)
 
         if center and scale:
             data_x[:] -= 127.5
             data_x[:] /= 127.5
+            data_v[:] -= 127.5
+            data_v[:] /= 127.5
         elif center:
             data_x[:] -= 127.5
+            data_v[:] -= 127.5
         elif scale:
             data_x[:] /= 255.
+            data_v[:] /= 255.
 
         if shuffle:
             rng = make_np_rng(rng, seed, which_method='permutation')
             rand_idx = rng.permutation(len(data_x))
             data_x = data_x[rand_idx]
+            rand_idx = rng.permutation(len(data_v))
+            data_v = data_v[rand_idx]
 
         # get labels
         if which_set != 'unlabeled':
@@ -119,15 +125,11 @@ class TFDSemi(SemiSupervised):
                 one_hot = np.zeros((data_y.shape[0], 7))
                 for i in xrange(data_y.shape[0]):
                     one_hot[i, data_y[i]] = 1.
-                if self.mapper[which_set] == 5:
-                    unsup_y = -99.*np.ones((unsup_x.shape[0], 7))
-                    for ii in xrange(n_copy):
-                        one_hot = np.vstack((one_hot, unsup_y))
                 data_y = one_hot.astype('float32')
 
             if shuffle:
                 data_y = data_y[rand_idx]
-                #data_y_identity = data_y_identity[rand_idx]
+                data_y_identity = data_y_identity[rand_idx]
 
         else:
             data_y = None
@@ -140,11 +142,11 @@ class TFDSemi(SemiSupervised):
                                                                   axes)
 
         # init the super class
-        super(TFDSemi, self).__init__(X=data_x,
-                                  y=data_y,
-                                  view_converter=view_converter)
+        super(TFDSemi, self).__init__(X=data_x, V = data_v,
+                                  y=data_y, view_converter=view_converter)
 
         assert not contains_nan(self.X)
+        assert not contains_nan(self.V)
 
         self.y_identity = data_y_identity
         self.axes = axes
