@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 
 from pylearn2.datasets import cache
-from pylearn2.utils.iteration import (
+from pylearn2.utils.semisupervised_iteration import (
     FiniteDatasetIterator,
     resolve_iterator_class
 )
@@ -181,75 +181,33 @@ class SemiSupervised(Dataset):
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None, data_specs=None,
-                 return_tuple=False):
+                 rng=None, data_specs=None, return_tuple=False):
 
-        if topo is not None or targets is not None:
-            if data_specs is not None:
-                raise ValueError('In DenseDesignMatrix.iterator, both the '
-                                 '"data_specs" argument and deprecated '
-                                 'arguments "topo" or "targets" were '
-                                 'provided.',
-                                 (data_specs, topo, targets))
+        if data_specs is None:
+            data_specs = self._iter_data_specs
 
-            warnings.warn("Usage of `topo` and `target` arguments are "
-                          "being deprecated, and will be removed "
-                          "around November 7th, 2013. `data_specs` "
-                          "should be used instead.",
-                          stacklevel=2)
-
-            # build data_specs from topo and targets if needed
-            if topo is None:
-                topo = getattr(self, '_iter_topo', False)
-            if topo:
-                # self.iterator is called without a data_specs, and with
-                # "topo=True", so we use the default topological space
-                # stored in self.X_topo_space
-                assert self.X_topo_space is not None
-                X_space = self.X_topo_space
-            else:
-                X_space = self.X_space
-
-            if targets is None:
-                targets = getattr(self, '_iter_targets', False)
-            if targets:
-                assert self.y is not None
-                y_space = self.data_specs[0].components[1]
-                space = CompositeSpace((X_space, y_space))
-                source = ('features', 'targets')
-            else:
-                space = X_space
-                source = 'features'
-
-            data_specs = (space, source)
-            convert = None
-
+        # If there is a view_converter, we have to use it to convert
+        # the stored data for "features" into one that the iterator
+        # can return.
+        space, source = data_specs
+        if isinstance(space, CompositeSpace):
+            sub_spaces = space.components
+            sub_sources = source
         else:
-            if data_specs is None:
-                data_specs = self._iter_data_specs
+            sub_spaces = (space,)
+            sub_sources = (source,)
 
-            # If there is a view_converter, we have to use it to convert
-            # the stored data for "features" into one that the iterator
-            # can return.
-            space, source = data_specs
-            if isinstance(space, CompositeSpace):
-                sub_spaces = space.components
-                sub_sources = source
+        convert = []
+        for sp, src in safe_zip(sub_spaces, sub_sources):
+            if src == 'features' and \
+               getattr(self, 'view_converter', None) is not None:
+                conv_fn = (lambda batch, self=self, space=sp:
+                           self.view_converter.get_formatted_batch(batch,
+                                                                   space))
             else:
-                sub_spaces = (space,)
-                sub_sources = (source,)
+                conv_fn = None
 
-            convert = []
-            for sp, src in safe_zip(sub_spaces, sub_sources):
-                if src == 'features' and \
-                   getattr(self, 'view_converter', None) is not None:
-                    conv_fn = (lambda batch, self=self, space=sp:
-                               self.view_converter.get_formatted_batch(batch,
-                                                                       space))
-                else:
-                    conv_fn = None
-
-                convert.append(conv_fn)
+            convert.append(conv_fn)
 
         # TODO: Refactor
         if mode is None:
@@ -267,8 +225,9 @@ class SemiSupervised(Dataset):
             num_batches = getattr(self, '_iter_num_batches', None)
         if rng is None and mode.stochastic:
             rng = self.rng
+        dataset_size = [data.shape[0] for data in self.get_data()]
         return FiniteDatasetIterator(self,
-                                     mode(self.X.shape[0],
+                                     mode(dataset_size,
                                           batch_size,
                                           num_batches,
                                           rng),
@@ -292,31 +251,6 @@ class SemiSupervised(Dataset):
         else:
             return (self.X, self.V, self.y)
 
-    def use_design_loc(self, path):
-        """
-        Caling this function changes the serialization behavior of the object
-        permanently.
-
-        If this function has been called, when the object is serialized, it
-        will save the design matrix to `path` as a .npy file rather
-        than pickling the design matrix along with the rest of the dataset
-        object. This avoids pickle's unfortunate behavior of using 2X the RAM
-        when unpickling.
-
-        TODO: Get rid of this logic, use custom array-aware picklers (joblib,
-        custom pylearn2 serialization format).
-
-        Parameters
-        ----------
-        path : str
-            The path to save the design matrix to
-        """
-
-        if not path.endswith('.npy'):
-            raise ValueError("path should end with '.npy'")
-
-        self.design_loc = path
-
     def get_topo_batch_axis(self):
         """
         The index of the axis of the batches
@@ -330,244 +264,6 @@ class SemiSupervised(Dataset):
         axis = self.view_converter.axes.index('b')
         return axis
 
-    def enable_compression(self):
-        """
-        If called, when pickled the dataset will be saved using only
-        8 bits per element.
-
-        .. todo::
-
-            Not sure this should be implemented as something a base dataset
-            does. Perhaps as a mixin that specific datasets (i.e. CIFAR10)
-            inherit from.
-        """
-        self.compress = True
-
-    def __getstate__(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        rval = copy.copy(self.__dict__)
-        # TODO: Not sure this should be implemented as something a base dataset
-        # does. Perhaps as a mixin that specific datasets (i.e. CIFAR10)
-        # inherit from.
-        if self.compress:
-            rval['compress_min'] = rval['X'].min(axis=0)
-            # important not to do -= on this line, as that will modify the
-            # original object
-            rval['X'] = rval['X'] - rval['compress_min']
-            rval['compress_max'] = rval['X'].max(axis=0)
-            rval['compress_max'][rval['compress_max'] == 0] = 1
-            rval['X'] *= 255. / rval['compress_max']
-            rval['X'] = np.cast['uint8'](rval['X'])
-
-        if self.design_loc is not None:
-            # TODO: Get rid of this logic, use custom array-aware picklers
-            # (joblib, custom pylearn2 serialization format).
-            np.save(self.design_loc, rval['X'])
-            del rval['X']
-
-        return rval
-
-    def __setstate__(self, d):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        if d['design_loc'] is not None:
-            if control.get_load_data():
-                fname = cache.datasetCache.cache_file(d['design_loc'])
-                d['X'] = np.load(fname)
-            else:
-                d['X'] = None
-
-        if d['compress']:
-            X = d['X']
-            mx = d['compress_max']
-            mn = d['compress_min']
-            del d['compress_max']
-            del d['compress_min']
-            d['X'] = 0
-            self.__dict__.update(d)
-            if X is not None:
-                self.X = np.cast['float32'](X) * mx / 255. + mn
-            else:
-                self.X = None
-        else:
-            self.__dict__.update(d)
-
-        # To be able to unpickle older data after the addition of
-        # the data_specs mechanism
-        if not all(m in d for m in ('data_specs', 'X_space',
-                                    '_iter_data_specs', 'X_topo_space')):
-            X_space = VectorSpace(dim=self.X.shape[1])
-            X_source = 'features'
-            if self.y is None:
-                space = X_space
-                source = X_source
-            else:
-                y_space = VectorSpace(dim=self.y.shape[-1])
-                y_source = 'targets'
-
-                space = CompositeSpace((X_space, y_space))
-                source = (X_source, y_source)
-
-            self.data_specs = (space, source)
-            self.X_space = X_space
-            self._iter_data_specs = (X_space, X_source)
-
-            view_converter = d.get('view_converter', None)
-            if view_converter is not None:
-                # Get the topo_space from the view_converter
-                if not hasattr(view_converter, 'topo_space'):
-                    raise NotImplementedError("Not able to get a topo_space "
-                                              "from this converter: %s"
-                                              % view_converter)
-
-                # self.X_topo_space stores a "default" topological space that
-                # will be used only when self.iterator is called without a
-                # data_specs, and with "topo=True", which is deprecated.
-                self.X_topo_space = view_converter.topo_space
-
-    def _apply_holdout(self, _mode="sequential", train_size=0, train_prop=0):
-        """
-        This function splits the dataset according to the number of
-        train_size if defined by the user with respect to the mode provided
-        by the user. Otherwise it will use the
-        train_prop to divide the dataset into a training and holdout
-        validation set. This function returns the training and validation
-        dataset.
-
-        Parameters
-        -----------
-        _mode : WRITEME
-        train_size : int
-            Number of examples that will be assigned to the training dataset.
-        train_prop : float
-            Proportion of training dataset split.
-
-        Returns
-        -------
-        WRITEME
-        """
-
-        """
-        This function splits the dataset according to the number of
-        train_size if defined by the user with respect to the mode provided
-        by the user. Otherwise it will use the
-        train_prop to divide the dataset into a training and holdout
-        validation set. This function returns the training and validation
-        dataset.
-
-        Parameters
-        -----------
-        _mode : WRITEME
-        train_size : int
-            Number of examples that will be assigned to the training dataset.
-        train_prop : float
-            Proportion of training dataset split.
-
-        Returns
-        -------
-        WRITEME
-        """
-        if train_size != 0:
-            size = train_size
-        elif train_prop != 0:
-            size = np.round(self.get_num_examples() * train_prop)
-        else:
-            raise ValueError("Initialize either split ratio and split size to "
-                             "non-zero value.")
-        if size < self.get_num_examples() - size:
-            dataset_iter = self.iterator(
-                mode=_mode,
-                batch_size=(self.get_num_examples() - size))
-            valid = dataset_iter.next()
-            train = dataset_iter.next()[:(self.get_num_examples()
-                                          - valid.shape[0])]
-        else:
-            dataset_iter = self.iterator(mode=_mode,
-                                         batch_size=size)
-            train = dataset_iter.next()
-            valid = dataset_iter.next()[:(self.get_num_examples()
-                                          - train.shape[0])]
-        return (train, valid)
-
-    def split_dataset_nfolds(self, nfolds=0):
-        """
-        This function splits the dataset into to the number of n folds
-        given by the user. Returns an array of folds.
-
-        Parameters
-        ----------
-        nfolds : int, optional
-            The number of folds for the  the validation set.
-
-        Returns
-        -------
-        WRITEME
-        """
-
-        folds_iter = self.iterator(mode="sequential", num_batches=nfolds)
-        folds = list(folds_iter)
-        return folds
-
-    def split_dataset_holdout(self, train_size=0, train_prop=0):
-        """
-        This function splits the dataset according to the number of
-        train_size if defined by the user.
-
-        Otherwise it will use the train_prop to divide the dataset into a
-        training and holdout validation set. This function returns the
-        training and validation dataset.
-
-        Parameters
-        ----------
-        train_size : int
-            Number of examples that will be assigned to the training
-            dataset.
-        train_prop : float
-            Proportion of dataset split.
-        """
-        return self._apply_holdout("sequential", train_size, train_prop)
-
-    def bootstrap_nfolds(self, nfolds, rng=None):
-        """
-        This function splits the dataset using the random_slice and into the
-        n folds. Returns the folds.
-
-        Parameters
-        ----------
-        nfolds : int
-            The number of folds for the  dataset.
-        rng : WRITEME
-            Random number generation class to be used.
-        """
-
-        folds_iter = self.iterator(mode="random_slice",
-                                   num_batches=nfolds,
-                                   rng=rng)
-        folds = list(folds_iter)
-        return folds
-
-    def bootstrap_holdout(self, train_size=0, train_prop=0, rng=None):
-        """
-        This function splits the dataset according to the number of
-        train_size defined by the user.
-
-        Parameters
-        ----------
-        train_size : int
-            Number of examples that will be assigned to the training dataset.
-        nfolds : int
-            The number of folds for the  the validation set.
-        rng : WRITEME
-            Random number generation class to be used.
-        """
-        return self._apply_holdout("random_slice", train_size, train_prop)
 
     def get_stream_position(self):
         """
