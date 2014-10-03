@@ -1,11 +1,13 @@
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.tfd_semi.TFDSemi {
         which_set: 'semisupervised',
-        one_hot: 1,
+        one_hot: True,
         scale: True,
         shuffle: True
     },
     model: !obj:pylearn2.models.bal_mlp.BalMLP {
+        input_space: !obj:pylearn2.space.VectorSpace(dim=2304),
+        input_source: 'supervised',
         layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h0',
                      dim: 1000,

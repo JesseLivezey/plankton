@@ -35,16 +35,14 @@ class FlattenerCost(DefaultDataSpecsMixin, Cost):
         """
         space, sources = self.get_data_specs(model)
         space.validate(data)
-        X, Y = data
+        X, V, Y = data
         rval = X
         for layer in model.layers:
             if isinstance(layer, FlattenerLayer):
                 composite = layer.raw_layer
                 sup, unsup = composite.layers
                 sup_act = sup.fprop(rval)
-                mask = T.switch(T.lt(Y, 0),0,1)
-                Y_mix = Y*mask+sup_act*(1-mask)
-                cost = .5*T.sqr(Y_mix-sup_act).mean()
+                cost = .5*T.sqr(Y-sup_act).mean()
                 break
             rval = layer.fprop(rval)
         return cost
@@ -55,7 +53,7 @@ class FlattenerCost(DefaultDataSpecsMixin, Cost):
             if isinstance(layer, FlattenerLayer):
                 targets = layer.raw_layer.layers[0].get_output_space()
                 break
-        return (CompositeSpace((features, targets)), ('features', 'targets'))
+        return (CompositeSpace((features, features, targets)), ('supervised', 'unsupervised', 'targets'))
 
 class MLPAE(DefaultDataSpecsMixin, Cost):
     """
@@ -77,16 +75,16 @@ class MLPAE(DefaultDataSpecsMixin, Cost):
         """
         space, sources = self.get_data_specs(model)
         space.validate(data)
-        X = data
-        rval = X
+        X, V = data
         X_hat = model.fprop(X)
-        cost = .5*T.sqr(X-X_hat).mean()
+        V_hat = model.fprop(V)
+        cost = .5*(T.sqr(X-X_hat).mean()+T.sqr(X-X_hat).mean())
         cost.name = 'ae_mse'
         return cost
 
     def get_data_specs(self, model):
         features = model.get_input_space()
-        return (features, 'features')
+        return (CompositeSpace(features, features), ('supervised', 'unsupervised')
 
 class FlattenerMisclass(DefaultDataSpecsMixin, Cost):
     """
@@ -110,26 +108,22 @@ class FlattenerMisclass(DefaultDataSpecsMixin, Cost):
         """
         space, sources = self.get_data_specs(model)
         space.validate(data)
-        X, Y = data
+        X, V, Y = data
         rval = X
         for layer in model.layers:
             if isinstance(layer, FlattenerLayer):
                 composite = layer.raw_layer
                 sup, unsup = composite.layers
                 sup_act = sup.fprop(rval)
-                mask = T.switch(T.lt(Y, 0),0,1)
-                Y_mix = Y*mask+sup_act*(1-mask)
-                n_sup = (mask.mean(1)).sum().astype(theano.config.floatX)
-                incorrect = T.neq(T.argmax(Y_mix, axis=1), T.argmax(sup_act, axis=1)).astype(theano.config.floatX).sum().astype(theano.config.floatX)
-                cost = incorrect/n_sup
+                cost = T.neq(T.argmax(Y, axis=1), T.argmax(sup_act, axis=1)).astype(theano.config.floatX).mean()
                 break
             rval = layer.fprop(rval)
         return cost
-    
+
     def get_data_specs(self, model):
         features = model.get_input_space()
         for layer in model.layers:
             if isinstance(layer, FlattenerLayer):
                 targets = layer.raw_layer.layers[0].get_output_space()
                 break
-        return (CompositeSpace((features, targets)), ('features', 'targets'))
+        return (CompositeSpace((features, features, targets)), ('supervised', 'unsupervised', 'targets'))

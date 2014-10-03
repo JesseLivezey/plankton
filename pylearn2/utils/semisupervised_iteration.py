@@ -31,10 +31,6 @@ from pylearn2.utils.rng import make_np_rng
 # addition of this test.
 # TODO: have nosetests run docgen.py in warning=error mode, remove
 # tests for specific conditions
-assert """Presets:
-
-- sequential: iterates through fixed slices of the dataset in sequence
-- s""" in __doc__
 
 
 class SubsetIterator(object):
@@ -237,7 +233,9 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
         super(RandomSliceSubsetIterator, self).__init__(dataset_size,
                                                         batch_size,
                                                         num_batches, rng)
-        self._last_start = self._dataset_size - self._batch_size
+        self._last_start = []
+        for size in self._dataset_size:
+            self._last_start.append(size-self._batch_size)
         for last_start in self._last_start:
             if self._last_start < 0:
                 raise ValueError("batch_size > dataset_size not supported for "

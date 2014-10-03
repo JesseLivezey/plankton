@@ -5,6 +5,7 @@
 """
 import numpy as np
 from pylearn2.datasets.semi_supervised import SemiSupervised
+from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils.rng import make_np_rng
 from pylearn2.utils import contains_nan
@@ -87,7 +88,7 @@ class TFDSemi(SemiSupervised):
         if self.mapper[which_set] == 5:
             data_v = data['images'][unsup_indices]
         data_x = np.cast['float32'](data_x)
-        data_v = np.cast['float32'])(data_v)
+        data_v = np.cast['float32'](data_v)
         data_x = data_x[ex_range]
         # create dense design matrix from topological view
         data_x = data_x.reshape(data_x.shape[0], image_size ** 2)
@@ -141,6 +142,9 @@ class TFDSemi(SemiSupervised):
                                                                    1),
                                                                   axes)
 
+        print data_x.shape
+        print data_v.shape
+        print data_y.shape
         # init the super class
         super(TFDSemi, self).__init__(X=data_x, V = data_v,
                                   y=data_y, view_converter=view_converter)
