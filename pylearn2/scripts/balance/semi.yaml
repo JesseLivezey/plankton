@@ -1,5 +1,5 @@
 !obj:pylearn2.train.Train {
-    dataset: &train !obj:pylearn2.datasets.tfd_semi2.TFDSemi {
+    dataset: &train !obj:pylearn2.datasets.tfd_semi.TFDSemi {
         which_set: 'semisupervised',
         one_hot: True,
         scale: True,
@@ -61,22 +61,22 @@
         monitoring_dataset:
             {
                 'train' : *train,
-                'valid' : !obj:pylearn2.datasets.tfd_semi2.TFDSemi {
+                'valid' : !obj:pylearn2.datasets.tfd_semi.TFDSemi {
                               which_set: 'valid',
                               one_hot: True,
                               scale: True,
                               shuffle: True,
                           },
             },
-        monitoring_costs: {'misclass': !obj:pylearn2.costs.mlp.layer_cost2.FlattenerMisclass {
+        monitoring_costs: {'misclass': !obj:pylearn2.costs.mlp.layer_cost.FlattenerMisclass {
                           }},
         monitoring_batches: 1,
         monitoring_batch_size: 428,
         monitor_iteration_mode: 'random_slice',
         cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
-                [100., !obj:pylearn2.costs.mlp.layer_cost2.FlattenerCost { } ],
-                [1., !obj:pylearn2.costs.mlp.layer_cost2.MLPAE { } ], 
-                [100., !obj:pylearn2.costs.mlp.layer_cost2.XCov { } ]
+                [100., !obj:pylearn2.costs.mlp.layer_cost.FlattenerCost { } ],
+                [1., !obj:pylearn2.costs.mlp.layer_cost.MLPAE { } ], 
+                [100., !obj:pylearn2.costs.mlp.layer_cost.XCov { } ]
             ]
         },
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {
