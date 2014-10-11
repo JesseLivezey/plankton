@@ -1,85 +1,96 @@
 !obj:pylearn2.train.Train {
-    dataset: &train !obj:pylearn2.datasets.tfd_semi.TFDSemi {
+    dataset: &train !obj:pylearn2.datasets.tfd_semi2.TFDSemi {
         which_set: 'semisupervised',
         one_hot: True,
         scale: True,
         shuffle: True
     },
-    model: !obj:pylearn2.models.bal_mlp.BalMLP {
-        input_space: !obj:pylearn2.space.VectorSpace(dim=2304),
-        input_source: 'supervised',
+    model: !obj:pylearn2.models.mlp.MLP {
+        input_space: !obj:pylearn2.space.VectorSpace {
+                         dim: 2304,
+        },
+        input_source: 'features',
         layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h0',
-                     dim: 1000,
-                     irange: .001,
+                     dim: %(L0dim)i,
+                     istdev: %(L0std)f,
+                     max_col_norm: %(max_col_norm)f,
                  },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h1',
-                     dim: 1000,
-                     irange: .001,
-                 },  !obj:pylearn2.models.mlp.FlattenerLayer {
+                     dim: %(L1dim)i,
+                     istdev: %(L1std)f,
+                     max_col_norm: %(max_col_norm)f,
+                 },  !obj:pylearn2.models.bal_mlp.FlattenerCostLayer {
                      raw_layer: !obj:pylearn2.models.mlp.CompositeLayer {
                          layer_name: 'composite',
                          layers: [ !obj:pylearn2.models.mlp.Linear {
                                      layer_name: 'y_h',
                                      dim: 7,
-                                     irange: .001,
+                                     istdev: %(ystd)f,
+                                     max_col_norm: %(max_col_norm)f,
                              }, !obj:pylearn2.models.mlp.Linear {
                                      layer_name: 'z_h',
-                                     dim: 393, 
-                                     irange: .001,
+                                     dim: %(zdim)i, 
+                                     istdev: %(zstd)f,
+                                     max_col_norm: %(max_col_norm)f,
                              } ]
                       }
                  },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_2',
-                     dim: 1000,
-                     irange: .001,
+                     dim: %(L_2dim)i,
+                     istdev: %(L_2std)f,
+                     max_col_norm: %(max_col_norm)f,
                  },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_1',
-                     dim: 1000,
-                     irange: .001,
+                     dim: %(L_1dim)i,
+                     istdev: %(L_1std)f,
+                     max_col_norm: %(max_col_norm)f,
                  },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_0',
                      dim: 2304,
-                     irange: .001,
+                     istdev: %(L_0std)f,
+                     max_col_norm: %(max_col_norm)f,
                  }
                 ],
-        nvis: 2304,
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-        batch_size: 256,
-        learning_rate: .00000001,
+        batch_size: 128,
+        learning_rate: .000000001,
+        train_iteration_mode: 'random_slice',
+        batches_per_iter: 500,
         monitoring_dataset:
             {
                 'train' : *train,
-                'valid' : !obj:pylearn2.datasets.tfd_semi.TFDSemi {
+                'valid' : !obj:pylearn2.datasets.tfd_semi2.TFDSemi {
                               which_set: 'valid',
-                              one_hot: 1,
+                              one_hot: True,
                               scale: True,
                               shuffle: True,
                           },
             },
-        monitoring_costs: {'misclass': !obj:pylearn2.costs.mlp.layer_cost.FlattenerMisclass {
+        monitoring_costs: {'misclass': !obj:pylearn2.costs.mlp.layer_cost2.FlattenerMisclass {
                           }},
-        #monitoring_batches: 3,
-        #monitoring_batch_size: 428,
-        #monitor_iteration_mode: 'random_slice',
+        monitoring_batches: 1,
+        monitoring_batch_size: 428,
+        monitor_iteration_mode: 'random_slice',
         cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
-            !obj:pylearn2.costs.mlp.layer_cost.FlattenerCost {
-            }, !obj:pylearn2.costs.mlp.layer_cost.MLPAE {
-            }
+                [100., !obj:pylearn2.costs.mlp.layer_cost2.FlattenerCost { } ],
+                [1., !obj:pylearn2.costs.mlp.layer_cost2.MLPAE { } ], 
+                [100., !obj:pylearn2.costs.mlp.layer_cost2.XCov { } ]
             ]
         },
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {
+                decay: .99
         },
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
                 !obj:pylearn2.termination_criteria.MonitorBased {
                     channel_name: "valid_term_1_ae_mse",
-                    prop_decrease: 0.,
-                    N: 1000
+                    prop_decrease: .95,
+                    N: 10000000
                 },
                 !obj:pylearn2.termination_criteria.EpochCounter {
-                    max_epochs: 2000
+                    max_epochs: 200
                 }
             ]
         }

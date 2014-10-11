@@ -4,7 +4,7 @@
     WRITEME
 """
 import numpy as np
-from pylearn2.datasets.semi_supervised import SemiSupervised
+from pylearn2.datasets.semi_supervised2 import SemiSupervised
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils.rng import make_np_rng
@@ -45,7 +45,7 @@ class TFDSemi(SemiSupervised):
             'full_train': 4, 'semisupervised': 5}
 
     def __init__(self, which_set, fold=0, image_size=48,
-                 example_range=None, center=False, scale=False,
+                 center=False, scale=False,
                  shuffle=False, one_hot=False, rng=None, seed=132987,
                  preprocessor=None, axes=('b', 0, 1, 'c')):
 
@@ -68,58 +68,50 @@ class TFDSemi(SemiSupervised):
 
         # retrieve indices corresponding to `which_set` and fold number
         if self.mapper[which_set] == 4:
-            set_indices = (data['folds'][:, fold] == 1) + \
+            feature_indices = (data['folds'][:, fold] == 1) + \
                           (data['folds'][:, fold] == 2)
+            labeled_indices = feature_indices
         elif self.mapper[which_set] == 5:
-            set_indices = data['folds'][:, fold] == 1
-            unsup_indices = data['folds'][:, fold] == 0
+            labeled_indices = data['folds'][:, fold] == 1
+            unlabeled_indices = data['folds'][:, fold] == 0
+            feature_indices = np.logical_or(labeled_indices, unlabeled_indices)
         else:
-            set_indices = data['folds'][:, fold] == self.mapper[which_set]
-        assert set_indices.sum() > 0
-
-        # limit examples returned to `example_range`
-        if example_range:
-            ex_range = slice(example_range[0], example_range[1])
-        else:
-            ex_range = slice(None)
+            feature_indices = data['folds'][:, fold] == self.mapper[which_set]
+            labeled_indices = feature_indices
+        assert labeled_indices.sum() > 0
 
         # get images and cast to float32
-        data_x = data['images'][set_indices]
-        if self.mapper[which_set] == 5:
-            data_v = data['images'][unsup_indices]
-        data_x = np.cast['float32'](data_x)
-        data_v = np.cast['float32'](data_v)
-        data_x = data_x[ex_range]
-        # create dense design matrix from topological view
-        data_x = data_x.reshape(data_x.shape[0], image_size ** 2)
-        data_v = data_v.reshape(data_v.shape[0], image_size ** 2)
+        features = data['images'][feature_indices].astype('float32')
+        features = features.reshape(-1, image_size ** 2)
+
+        labeled = data['images'][labeled_indices].astype('float32')
+        labeled = labeled.reshape(-1, image_size ** 2)
 
         if center and scale:
-            data_x[:] -= 127.5
-            data_x[:] /= 127.5
-            data_v[:] -= 127.5
-            data_v[:] /= 127.5
+            features[:] -= 127.5
+            features[:] /= 127.5
+            labeled[:] -= 127.5
+            labeled[:] /= 127.5
         elif center:
-            data_x[:] -= 127.5
-            data_v[:] -= 127.5
+            features[:] -= 127.5
+            labeled[:] -= 127.5
         elif scale:
-            data_x[:] /= 255.
-            data_v[:] /= 255.
+            features[:] /= 255.
+            labeled[:] /= 255.
 
         if shuffle:
             rng = make_np_rng(rng, seed, which_method='permutation')
-            rand_idx = rng.permutation(len(data_x))
-            data_x = data_x[rand_idx]
-            rand_idx = rng.permutation(len(data_v))
-            data_v = data_v[rand_idx]
+            rand_idx = rng.permutation(len(features))
+            features = features[rand_idx]
+            rand_idx_labeled = rng.permutation(len(labeled))
+            labeled = labeled[rand_idx_labeled]
 
         # get labels
         if which_set != 'unlabeled':
-            data_y = data['labs_ex'][set_indices]
-            data_y = data_y[ex_range] - 1
+            data_y = data['labs_ex'][labeled_indices]
+            data_y = data_y - 1
 
-            data_y_identity = data['labs_id'][set_indices]
-            data_y_identity = data_y_identity[ex_range]
+            data_y_identity = data['labs_id'][labeled_indices]
 
             self.one_hot = one_hot
             if one_hot:
@@ -129,8 +121,8 @@ class TFDSemi(SemiSupervised):
                 data_y = one_hot.astype('float32')
 
             if shuffle:
-                data_y = data_y[rand_idx]
-                data_y_identity = data_y_identity[rand_idx]
+                data_y = data_y[rand_idx_labeled]
+                data_y_identity = data_y_identity[rand_idx_labeled]
 
         else:
             data_y = None
@@ -142,15 +134,12 @@ class TFDSemi(SemiSupervised):
                                                                    1),
                                                                   axes)
 
-        print data_x.shape
-        print data_v.shape
-        print data_y.shape
         # init the super class
-        super(TFDSemi, self).__init__(X=data_x, V = data_v,
+        super(TFDSemi, self).__init__(X=features, V=features, L=labeled,
                                   y=data_y, view_converter=view_converter)
 
         assert not contains_nan(self.X)
-        assert not contains_nan(self.V)
+        assert not contains_nan(self.L)
 
         self.y_identity = data_y_identity
         self.axes = axes

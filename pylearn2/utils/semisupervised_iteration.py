@@ -176,7 +176,8 @@ class RandomUniformSubsetIterator(SubsetIterator):
     and attribute documentation.
     """
 
-    def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+    def __init__(self, dataset_size, tied_sets, sources, 
+                 batch_size, num_batches, rng=None):
         self._rng = make_np_rng(rng, which_method=["random_integers",
                                                    "shuffle"])
         if batch_size is None:
@@ -186,24 +187,40 @@ class RandomUniformSubsetIterator(SubsetIterator):
             raise ValueError("num_batches cannot be None for random uniform "
                              "iteration")
         for size in dataset_size:
-            assert size > batch_size
+            assert size >= batch_size
         self._dataset_size = dataset_size
         self._batch_size = batch_size
         self._num_batches = num_batches
         self._next_batch_no = 0
+        self._sources = sources
+        assert len(dataset_size) == len(sources)
+        for item_set in tied_sets:
+            length = dataset_size[sources.index(item_set[0])]
+            for item in item_set:
+                assert length == dataset_size[sources.index(item)]
+        self.set_size = {str(sets): dataset_size[sources.index(sets[0])] 
+                         for sets in tied_sets}
+        self.source_mapping = {}
+        for source in sources:
+            for sets in tied_sets:
+                if source in sets:
+                    self.source_mapping[source] = str(sets)
 
     @wraps(SubsetIterator.next)
     def next(self):
         if self._next_batch_no >= self._num_batches:
             raise StopIteration()
         else:
-            self._last = []
-            for size in self._dataset_size:
-                self._last.append(self._rng.random_integers(low=0,
-                                                   high=size - 1,
-                                                   size=(self._batch_size,)))
+            set_indices = {}
+            for sets in self.set_size.keys():
+                set_indices[sets] = self._rng.random_integers(low=0,
+                                       high=self.set_size[sets]-1,
+                                       size=(self._batch_size,))
+            source_indices = {}
+            for source in self._sources:
+                source_indices[source] = set_indices[self.source_mapping[source]]
             self._next_batch_no += 1
-            return self._last
+            return source_indices
 
     fancy = True
     stochastic = True
@@ -223,7 +240,8 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
     and attribute documentation.
     """
 
-    def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+    def __init__(self, dataset_size, tied_sets, sources, 
+                 batch_size, num_batches, rng=None):
         if batch_size is None:
             raise ValueError("batch_size cannot be None for random slice "
                              "iteration")
@@ -231,6 +249,8 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
             raise ValueError("num_batches cannot be None for random slice "
                              "iteration")
         super(RandomSliceSubsetIterator, self).__init__(dataset_size,
+                                                        tied_sets,
+                                                        sources,
                                                         batch_size,
                                                         num_batches, rng)
         self._last_start = []
@@ -246,12 +266,15 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
         if self._next_batch_no >= self._num_batches:
             raise StopIteration()
         else:
-            self._last = []
-            for last_start in self._last_start:
-                start = self._rng.random_integers(low=0, high=last_start)
-                self._last = slice(start, start + self._batch_size)
-                self._next_batch_no += 1
-            return self._last
+            set_slices = {}
+            for sets in self.set_size.keys():
+                start = self._rng.random_integers(low=0, high=self.set_size[sets]-self._batch_size)
+                set_slices[sets] = slice(start, start + self._batch_size)
+            source_slices = {}
+            for source in self._sources:
+                source_slices[source] = set_slices[self.source_mapping[source]]
+            self._next_batch_no += 1
+            return source_slices
 
     fancy = False
     stochastic = True
@@ -396,6 +419,8 @@ class FiniteDatasetIterator(object):
         else:
             assert len(convert) == len(source)
             self._convert = convert
+
+        self._sources = source
         for i, (so, sp, dt) in enumerate(safe_izip(source,
                                                    sub_spaces,
                                                    self._raw_data)):
@@ -458,8 +483,8 @@ class FiniteDatasetIterator(object):
         # using np.take()
 
         rval = tuple(
-            fn(data[next_index]) if fn else data[next_index]
-            for data, fn in safe_izip(self._raw_data, self._convert))
+            fn(data[next_index[source]]) if fn else data[next_index[source]]
+            for data, fn, source in safe_izip(self._raw_data, self._convert, self._source))
         if not self._return_tuple and len(rval) == 1:
             rval, = rval
         return rval

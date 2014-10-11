@@ -1,6 +1,6 @@
 """
 Dataset for training with combination of supervised and unsupervised
-data. Based on the DenseDesignMatrix
+data. Based on the DenseDesignMatrix class.
 """
 __authors__ = "Jesse Livezey"
 import functools
@@ -47,10 +47,13 @@ class SemiSupervised(Dataset):
     V : ndarry, 2-dimensional
         A design matrix\
         of shape (number examples, number features) \
-        that defines the unsupervised dataset.
+        that defines the targets of the network.
+    L : ndarry, 2-dimensional
+        A design matrix\
+        of shape (number examples, number features) \
+        that defines the supervised examples of the network.
     y : ndarray, optional
-
-        Targets for each supervised example (e.g., class ids, values to be predicted
+        Labels for each supervised example (e.g., class ids, values to be predicted
         in a regression task).
 
         Format should be:
@@ -87,19 +90,21 @@ class SemiSupervised(Dataset):
     """
     _default_seed = (17, 2, 946)
 
-    def __init__(self, X, V, y,
+    def __init__(self, X, V, L, y,
                  view_converter=None, axes=('b', 0, 1, 'c'),
                  rng=_default_seed, X_labels=None, y_labels=None):
         self.X = X
-        self.y = y
         self.V = V
+        self.L = L
+        self.y = y
         self.view_converter = view_converter
         self.X_labels = X_labels
         self.y_labels = y_labels
+        self._tied_sets = [['features', 'targets'], ['labeled', 'labels']]
 
         self._check_labels()
         
-        assert(X.shape[1] == V.shape[1], "Supervised and unsupervised "
+        assert(X.shape[1] == L.shape[1], "Labeled and unlabeled "
                                          "features have different shapes.")
 
         if view_converter is not None:
@@ -118,7 +123,7 @@ class SemiSupervised(Dataset):
             self.X_topo_space = None
 
         # Update data specs, if not done in set_topological_view
-        X_source = ('supervised', 'unsupervised')
+        X_source = ('features', 'labeled')
         if X_labels is None:
             X_space = VectorSpace(dim=X.shape[1])
         else:
@@ -131,14 +136,15 @@ class SemiSupervised(Dataset):
             dim = 1
         else:
             dim = y.shape[-1]
+
+        y_source = ('targets', 'labels')
         if y_labels is not None:
             y_space = IndexSpace(dim=dim, max_labels=y_labels)
         else:
             y_space = VectorSpace(dim=dim)
-        y_source = 'targets'
 
-        space = CompositeSpace((X_space, X_space, y_space))
-        source = X_source+(y_source,)
+        space = CompositeSpace((X_space, X_space, X_space, y_space))
+        source = X_source+y_source
         self.data_specs = (space, source)
         self.X_space = (X_space, X_space)
 
@@ -149,7 +155,7 @@ class SemiSupervised(Dataset):
         self._iter_mode = resolve_iterator_class('random_slice')
         self._iter_topo = False
         self._iter_targets = False
-        self._iter_data_specs = (CompositeSpace(self.X_space), ('supervised', 'unsupervised'))
+        self._iter_data_specs = (CompositeSpace(self.X_space), ('features', 'labeled'))
 
     def _check_labels(self):
         """Sanity checks for X_labels and y_labels."""
@@ -158,8 +164,10 @@ class SemiSupervised(Dataset):
             assert self.view_converter is None
             assert self.X.ndim <= 2
             assert self.V.ndim <= 2
+            assert self.L.ndim <= 2
             assert np.all(self.V < self.X_labels)
             assert np.all(self.X < self.X_labels)
+            assert np.all(self.L < self.X_labels)
 
         if self.y_labels is not None:
             assert self.y is not None
@@ -213,8 +221,11 @@ class SemiSupervised(Dataset):
         if rng is None and mode.stochastic:
             rng = self.rng
         dataset_size = [data.shape[0] for data in self.get_data()]
+        tied_sets = self._tied_sets
         return FiniteDatasetIterator(self,
                                      mode(dataset_size,
+                                          tied_sets,
+                                          self.data_specs[1],
                                           batch_size,
                                           num_batches,
                                           rng),
@@ -233,10 +244,7 @@ class SemiSupervised(Dataset):
         data : numpy matrix or 2-tuple of matrices
             The data
         """
-        if self.y is None:
-            return self.X
-        else:
-            return (self.X, self.V, self.y)
+        return (self.X, self.L, self.V, self.y)
 
     def get_topo_batch_axis(self):
         """
