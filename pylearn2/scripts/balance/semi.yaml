@@ -24,7 +24,7 @@
                      max_col_norm: %(max_col_norm)f,
                      init_bias: %(init_bias)f,
                      elbow: 1.,
-                 },  !obj:pylearn2.models.mlp.FlattenerLayer {
+                 },  !obj:pylearn2.models.flattener.FlattenerLayer2 {
                      raw_layer: !obj:pylearn2.models.mlp.CompositeLayer {
                          layer_name: 'composite',
                          layers: [ !obj:pylearn2.models.mlp.Linear {
@@ -83,9 +83,9 @@
         monitoring_batch_size: 428,
         monitor_iteration_mode: 'random_slice',
         cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
-                #                [100., !obj:pylearn2.costs.mlp.layer_cost.FlattenerCost { } ],
+                [100., !obj:pylearn2.costs.mlp.layer_cost.FlattenerCost { } ],
                 [1., !obj:pylearn2.costs.mlp.layer_cost.MLPAE { } ], 
-                #                [100., !obj:pylearn2.costs.mlp.layer_cost.XCov { } ]
+                [100., !obj:pylearn2.costs.mlp.layer_cost.XCov { } ]
             ]
         },
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {

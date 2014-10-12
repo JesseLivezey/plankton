@@ -1,6 +1,6 @@
 from pylearn2.config import yaml_parse
 import numpy as np
-with open('semi.yaml', 'rb') as f:
+with open('tfd.yaml', 'rb') as f:
     train = f.read()
     
 init_alpha = .1

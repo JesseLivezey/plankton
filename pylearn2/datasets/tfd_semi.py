@@ -4,7 +4,7 @@
     WRITEME
 """
 import numpy as np
-from pylearn2.datasets.semi_supervised2 import SemiSupervised
+from pylearn2.datasets.semi_supervised import SemiSupervised
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils.rng import make_np_rng

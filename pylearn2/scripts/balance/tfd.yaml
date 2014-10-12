@@ -20,7 +20,7 @@
                      dim: %(L1dim)i,
                      istdev: %(L1std)f,
                      max_col_norm: %(max_col_norm)f,
-                 },  !obj:pylearn2.models.bal_mlp.FlattenerCostLayer {
+                 },  !obj:pylearn2.models.flattener.FlattenerLayer2 {
                      raw_layer: !obj:pylearn2.models.mlp.CompositeLayer {
                          layer_name: 'composite',
                          layers: [ !obj:pylearn2.models.mlp.Linear {

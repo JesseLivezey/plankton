@@ -52,7 +52,6 @@ class FlattenerCost(DefaultDataSpecsMixin, Cost):
         for layer in model.layers:
             if isinstance(layer, FlattenerLayer):
                 targets = layer.raw_layer.layers[0].get_output_space()
-                print targets
                 break
         return (CompositeSpace((features, targets)), ('labeled', 'labels'))
 
