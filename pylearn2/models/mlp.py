@@ -663,6 +663,10 @@ class MLP(Layer):
 
         rval = OrderedDict()
         state = state_below
+        print 'mlp layer monitoring channels'
+        print 'targets',targets
+        print 'state_below',state_below
+        print 'state',state
 
         for layer in self.layers:
             # We don't go through all the inner layers recursively
@@ -671,6 +675,8 @@ class MLP(Layer):
             args = [state_below, state]
             if layer is self.layers[-1] and targets is not None:
                 args.append(targets)
+            print 'args'
+            print args
             ch = layer.get_layer_monitoring_channels(*args)
             if not isinstance(ch, OrderedDict):
                 raise TypeError(str((type(ch), layer.layer_name)))
@@ -4654,6 +4660,11 @@ class FlattenerLayer(Layer):
     @wraps(Layer.get_layer_monitoring_channels)
     def get_layer_monitoring_channels(self, state_below=None,
                                       state=None, targets=None):
+        print 'internal'
+        print 'statebelow',state_below
+        print 'state',state
+        print 'targets',targets
+        print 'space',self.get_target_space()
         return self.raw_layer.get_layer_monitoring_channels(
             state_below=state_below,
             state=self.get_output_space().format_as(state, self.raw_layer.get_output_space()),

@@ -9,8 +9,8 @@ from theano import tensor as T
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin, NullDataSpecsMixin
 from pylearn2.utils import safe_izip
 from pylearn2.utils.exc import reraise_as
-from pylearn2.models.bal_mlp import FlattenerCostLayer
 from pylearn2.space import CompositeSpace
+from pylearn2.models.mlp import FlattenerLayer
 
 
 class FlattenerCost(DefaultDataSpecsMixin, Cost):
@@ -38,7 +38,7 @@ class FlattenerCost(DefaultDataSpecsMixin, Cost):
         L, Y = data
         rval = L
         for layer in model.layers:
-            if isinstance(layer, FlattenerCostLayer):
+            if isinstance(layer, FlattenerLayer):
                 composite = layer.raw_layer
                 labeled, unlabeled = composite.layers
                 labeled_act = labeled.fprop(rval)
@@ -50,8 +50,9 @@ class FlattenerCost(DefaultDataSpecsMixin, Cost):
     def get_data_specs(self, model):
         features = model.get_input_space()
         for layer in model.layers:
-            if isinstance(layer, FlattenerCostLayer):
+            if isinstance(layer, FlattenerLayer):
                 targets = layer.raw_layer.layers[0].get_output_space()
+                print targets
                 break
         return (CompositeSpace((features, targets)), ('labeled', 'labels'))
 
@@ -110,7 +111,7 @@ class FlattenerMisclass(DefaultDataSpecsMixin, Cost):
         L, Y = data
         rval = L
         for layer in model.layers:
-            if isinstance(layer, FlattenerCostLayer):
+            if isinstance(layer, FlattenerLayer):
                 composite = layer.raw_layer
                 sup, unsup = composite.layers
                 sup_act = sup.fprop(rval)
@@ -122,7 +123,7 @@ class FlattenerMisclass(DefaultDataSpecsMixin, Cost):
     def get_data_specs(self, model):
         features = model.get_input_space()
         for layer in model.layers:
-            if isinstance(layer, FlattenerCostLayer):
+            if isinstance(layer, FlattenerLayer):
                 targets = layer.raw_layer.layers[0].get_output_space()
                 break
         return (CompositeSpace((features, targets)), ('labeled', 'labels'))
@@ -153,7 +154,7 @@ class XCov(DefaultDataSpecsMixin, Cost):
         N = X.shape[0].astype(theano.config.floatX)
         rval = X
         for layer in model.layers:
-            if isinstance(layer, FlattenerCostLayer):
+            if isinstance(layer, FlattenerLayer):
                 composite = layer.raw_layer
                 labeled, unlabeled = composite.layers
                 labeled_act = labeled.fprop(rval)
