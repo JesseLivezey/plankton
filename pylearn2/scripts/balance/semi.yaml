@@ -10,20 +10,27 @@
                          dim: 2304,
         },
         input_source: 'features',
-        layers: [ !obj:pylearn2.models.soft_relu.SoftRectifiedLinear {
+        layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h0',
                      dim: %(L0dim)i,
                      istdev: %(L0std)f,
                      max_col_norm: %(max_col_norm)f,
                      init_bias: %(init_bias)f,
-                     elbow: 1.,
-                 },  !obj:pylearn2.models.soft_relu.SoftRectifiedLinear {
+                     #elbow: 1.,
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h1',
                      dim: %(L1dim)i,
                      istdev: %(L1std)f,
                      max_col_norm: %(max_col_norm)f,
                      init_bias: %(init_bias)f,
-                     elbow: 1.,
+                     #elbow: 1.,
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h2',
+                     dim: %(L2dim)i,
+                     istdev: %(L2std)f,
+                     max_col_norm: %(max_col_norm)f,
+                     init_bias: %(init_bias)f,
+                     #elbow: 1.,
                  },  !obj:pylearn2.models.flattener.FlattenerLayer2 {
                      raw_layer: !obj:pylearn2.models.mlp.CompositeLayer {
                          layer_name: 'composite',
@@ -39,20 +46,27 @@
                                      max_col_norm: %(max_col_norm)f,
                              } ]
                       }
-                 },  !obj:pylearn2.models.soft_relu.SoftRectifiedLinear {
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h_3',
+                     dim: %(L_3dim)i,
+                     istdev: %(L_3std)f,
+                     max_col_norm: %(max_col_norm)f,
+                     init_bias: %(init_bias)f,
+                     #elbow: 1.,
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_2',
                      dim: %(L_2dim)i,
                      istdev: %(L_2std)f,
                      max_col_norm: %(max_col_norm)f,
                      init_bias: %(init_bias)f,
-                     elbow: 1.,
-                 },  !obj:pylearn2.models.soft_relu.SoftRectifiedLinear {
+                     #elbow: 1.,
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_1',
                      dim: %(L_1dim)i,
                      istdev: %(L_1std)f,
                      max_col_norm: %(max_col_norm)f,
                      init_bias: %(init_bias)f,
-                     elbow: 1.,
+                     #elbow: 1.,
                  },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_0',
                      dim: 2304,
@@ -77,15 +91,15 @@
                               shuffle: True,
                           },
             },
-        monitoring_costs: {'misclass': !obj:pylearn2.costs.mlp.layer_cost.FlattenerMisclass {
+        monitoring_costs: {'misclass': !obj:pylearn2.costs.mlp.layer_cost.LabelMisclass {
                           }},
         monitoring_batches: 1,
         monitoring_batch_size: 428,
         monitor_iteration_mode: 'random_slice',
         cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
-                [100., !obj:pylearn2.costs.mlp.layer_cost.FlattenerCost { } ],
-                [1., !obj:pylearn2.costs.mlp.layer_cost.MLPAE { } ], 
-                [100., !obj:pylearn2.costs.mlp.layer_cost.XCov { } ]
+                [100., !obj:pylearn2.costs.mlp.layer_cost.DropoutLabelMSE { } ],
+                [1., !obj:pylearn2.costs.mlp.layer_cost.DropoutAEMSE { } ], 
+                [100., !obj:pylearn2.costs.mlp.layer_cost.DropoutXCov { } ]
             ]
         },
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {
