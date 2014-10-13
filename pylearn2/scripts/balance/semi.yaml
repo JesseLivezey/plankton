@@ -108,7 +108,7 @@
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
                 !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: "valid_term_1_ae_mse",
+                    channel_name: "valid_term_1_dropout_ae_mse",
                     prop_decrease: .95,
                     N: 10000000
                 },
@@ -120,7 +120,7 @@
     },
     extensions: [
         !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
-             channel_name: 'valid_term_1_ae_mse',
+             channel_name: 'valid_term_1_dropout_ae_mse',
              save_path: "model.pkl"
         }
     ]

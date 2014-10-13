@@ -5,6 +5,7 @@ __authors__ = 'Jesse Livezey'
 
 import theano
 from theano import tensor as T
+from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin, NullDataSpecsMixin
 from pylearn2.utils import safe_izip
@@ -89,7 +90,7 @@ class DropoutLabelMSE(DefaultDataSpecsMixin, Cost):
         """
         model._validate_layer_names(list(self.input_include_probs.keys()))
         model._validate_layer_names(list(self.input_scales.keys()))
-        theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
+        theano_rng = MRG_RandomStreams(max(model.rng.randint(2 ** 15), 1))
 
         space, sources = self.get_data_specs(model)
         space.validate(data)
@@ -100,12 +101,12 @@ class DropoutLabelMSE(DefaultDataSpecsMixin, Cost):
             if layer_name in self.input_include_probs:
                 include_prob = self.input_include_probe[layer_name]
             else:
-                include_prob = default_input_include_prob
+                include_prob = self.default_input_include_prob
 
-            if layer_name in input_scales:
-                scale = input_scales[layer_name]
+            if layer_name in self.input_scales:
+                scale = self.input_scales[layer_name]
             else:
-                scale = default_input_scale
+                scale = self.default_input_scale
 
             if isinstance(layer, FlattenerLayer):
                 composite = layer.raw_layer
@@ -117,7 +118,7 @@ class DropoutLabelMSE(DefaultDataSpecsMixin, Cost):
                         scale=scale,
                         mask_value=labeled.dropout_input_mask_value,
                         input_space=labeled.get_input_space(),
-                        per_example=per_example
+                        per_example=self.per_example
                         )
                 labeled_act = labeled.fprop(labeled_act)
                 cost = .5*T.sqr(Y-labeled_act).sum()
@@ -129,7 +130,7 @@ class DropoutLabelMSE(DefaultDataSpecsMixin, Cost):
                     scale=scale,
                     mask_value=layer.dropout_input_mask_value,
                     input_space=layer.get_input_space(),
-                    per_example=per_example
+                    per_example=self.per_example
                     )
             rval = layer.fprop(rval)
         return cost
@@ -336,7 +337,7 @@ class DropoutXCov(DefaultDataSpecsMixin, Cost):
         """
         model._validate_layer_names(list(self.input_include_probs.keys()))
         model._validate_layer_names(list(self.input_scales.keys()))
-        theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
+        theano_rng = MRG_RandomStreams(max(model.rng.randint(2 ** 15), 1))
 
         space, sources = self.get_data_specs(model)
         space.validate(data)
@@ -348,12 +349,12 @@ class DropoutXCov(DefaultDataSpecsMixin, Cost):
             if layer_name in self.input_include_probs:
                 include_prob = self.input_include_probe[layer_name]
             else:
-                include_prob = default_input_include_prob
+                include_prob = self.default_input_include_prob
 
-            if layer_name in input_scales:
-                scale = input_scales[layer_name]
+            if layer_name in self.input_scales:
+                scale = self.input_scales[layer_name]
             else:
-                scale = default_input_scale
+                scale = self.default_input_scale
             if isinstance(layer, FlattenerLayer):
                 composite = layer.raw_layer
                 labeled, unlabeled = composite.layers
@@ -364,7 +365,7 @@ class DropoutXCov(DefaultDataSpecsMixin, Cost):
                         scale=scale,
                         mask_value=labeled.dropout_input_mask_value,
                         input_space=labeled.get_input_space(),
-                        per_example=per_example
+                        per_example=self.per_example
                         )
                 labeled_act = labeled.fprop(rval)
                 unlabeled_act = unlabeled.fprop(rval)
@@ -381,7 +382,7 @@ class DropoutXCov(DefaultDataSpecsMixin, Cost):
                     scale=scale,
                     mask_value=layer.dropout_input_mask_value,
                     input_space=layer.get_input_space(),
-                    per_example=per_example
+                    per_example=self.per_example
                     )
             rval = layer.fprop(rval)
         return cost
