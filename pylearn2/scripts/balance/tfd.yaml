@@ -88,9 +88,9 @@
         monitoring_batch_size: 428,
         monitor_iteration_mode: 'random_slice',
         cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
-                [100., !obj:pylearn2.costs.mlp.layer_cost.LabelMSE { } ],
-                [1., !obj:pylearn2.costs.mlp.layer_cost.AEMSE { } ], 
-                [100., !obj:pylearn2.costs.mlp.layer_cost.XCov { } ]
+                [100., !obj:pylearn2.costs.mlp.layer_cost.DropoutLabelMSE { } ],
+                [1., !obj:pylearn2.costs.mlp.layer_cost.DropoutAEMSE { } ], 
+                [100., !obj:pylearn2.costs.mlp.layer_cost.DropoutXCov { } ]
             ]
         },
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {
@@ -99,20 +99,20 @@
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
                 !obj:pylearn2.termination_criteria.MonitorBased {
-                    channel_name: "valid_term_1_ae_mse",
+                    channel_name: "valid_mse",
                     prop_decrease: .95,
                     N: 10000000
                 },
                 !obj:pylearn2.termination_criteria.EpochCounter {
-                    max_epochs: 200
+                    max_epochs: 500
                 }
             ]
         }
     },
     extensions: [
         !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
-             channel_name: 'valid_term_1_ae_mse',
-             save_path: "model.pkl"
+             channel_name: 'valid_mse',
+             save_path: "tfd_model_2k.pkl"
         }
     ]
 }

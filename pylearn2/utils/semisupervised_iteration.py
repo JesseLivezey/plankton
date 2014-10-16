@@ -4,9 +4,6 @@ datasets.
 
 Presets:
 
-- sequential: iterates through fixed slices of the dataset in sequence
-- shuffled_sequential: iterates through a shuffled version of the dataset
-  in sequence
 - random_slice: on each call to next, returns a slice of the dataset,
   chosen uniformly at random over contiguous slices.
   Samples with replacement, but still reports that
@@ -34,10 +31,6 @@ from pylearn2.utils.rng import make_np_rng
 # addition of this test.
 # TODO: have nosetests run docgen.py in warning=error mode, remove
 # tests for specific conditions
-assert """Presets:
-
-- sequential: iterates through fixed slices of the dataset in sequence
-- s""" in __doc__
 
 
 class SubsetIterator(object):
@@ -170,307 +163,6 @@ class SubsetIterator(object):
         """
         raise NotImplementedError()
 
-
-class ForcedEvenIterator(SubsetIterator):
-    """
-    A class which wraps other iterators to ensure equal batch size.
-    This class needs to be completed using type() metaclass, see
-    Examples section to see how to use it.
-
-    Parameters
-    ----------
-    dataset_size : int
-        Total number of examples in the dataset
-    batch_size : int or None
-        The size of the batches.
-        If set to None and num_batches is defined, batch_size will be
-        calculated based on dataset_size.
-    num_batches : int or None
-        The number of batch in the dataset.
-        If set to None and batch_size is defined, num_batches will be
-        calculated based on dataset_size.
-    *args : Variable length argument list for _base_iterator_cls
-    **kwargs : Arbitrary keyword arguments for _base_iterator_cls
-
-    Notes
-    -----
-        This class can not be initialized because it needs to be completed
-        using type() metaclass. See Examples section for more details.
-
-        Batches of size unequal to batch_size will be discarded. Those
-        examples will never be visited.
-
-    Examples
-    --------
-    >>> dct = ForcedEvenIterator.__dict__.copy()
-    >>> dct["_base_iterator_cls"] = SequentialSubsetIterator
-    >>> dct["fancy"] = SequentialSubsetIterator.fancy
-    >>> dct["stochastic"] = SequentialSubsetIterator.stochastic
-    >>>
-    >>> NewForcedEvenClass = type("ForcedEvenDummyIterator",
-    ...     ForcedEvenIterator.__bases__, dct)
-    >>>
-    >>> even_iterator = NewForcedEvenClass(dataset_size=100,
-    ...     batch_size=30, num_batches=None)
-
-    For a shortcut use function as_even()
-
-    >>> NewForcedEvenClass = as_even(SequentialSubsetIterator)
-    >>> even_iterator = NewForcedEvenClass(dataset_size=100,
-    ...     batch_size=30, num_batches=None)
-    """
-
-    def __init__(self, dataset_size, batch_size, num_batches, *args, **kwargs):
-
-        if self.fancy is None or self.stochastic is None or \
-           self._base_iterator_cls is None:
-            raise ValueError("You must pre-define fancy, stochastic and "
-                             "_base_iterator_cls arguments by creating a new "
-                             "class using the metaclass type()."
-                             "See function as_even() for an example.")
-
-        if batch_size is None:
-            if num_batches is not None:
-                batch_size = int(dataset_size / num_batches)
-            else:
-                raise ValueError("need one of batch_size, num_batches "
-                                 "for sequential batch iteration")
-        elif batch_size is not None:
-            if num_batches is not None:
-                max_num_batches = int(dataset_size / batch_size)
-                if num_batches > max_num_batches:
-                    raise ValueError("dataset of %d examples can only provide "
-                                     "%d batches of equal size with batch_size"
-                                     " %d, but %d batches were requested" %
-                                     (dataset_size, max_num_batches,
-                                      batch_size, num_batches))
-            else:
-                num_batches = int(dataset_size / batch_size)
-
-        self._base_iterator = self._base_iterator_cls(dataset_size, batch_size,
-                                                      num_batches, *args,
-                                                      **kwargs)
-
-    # Does it ensure that every batch has the same size?
-    uniform_batch_size = True
-
-    # Does this return subsets that need fancy indexing? (i.e. lists
-    # of indices)
-    # Needs to be set before initialization. See Examples section in class docs
-    fancy = None
-
-    # Does this class make use of random number generators?
-    # Needs to be set before initialization. See Examples section in class docs
-    stochastic = None
-
-    # base iterator that ForcedEvenIterator class wraps
-    # Needs to be set before initialization. See Examples section in class docs
-    _base_iterator_cls = None
-
-    @property
-    def _dataset_size(self):
-        return self._base_iterator._dataset_size
-
-    @property
-    def _batch_size(self):
-        return self._base_iterator._batch_size
-
-    @property
-    def _num_batches(self):
-        return self._base_iterator._num_batches
-
-    @property
-    def num_examples(self):
-        """
-        Number of examples that will be visited
-        by the iterator. (May be lower than dataset_size)
-        """
-
-        product = self.batch_size * self.num_batches
-
-        if product > self._dataset_size:
-            return self.batch_size * (self.num_batches - 1)
-        else:
-            return product
-
-    def next(self):
-        """
-        Returns next batch of _base_iterator
-
-        Raises
-        ------
-        StopException
-            When _base_iterator reachs the end of the dataset
-
-        Notes
-        -----
-            Uneven batches may be discarded and StopException
-            will be raised without having iterated throught
-            every examples.
-        """
-
-        length = -1
-
-        # check if the batch has wrong length, throw it away
-        while length != self.batch_size:
-            batch = self._base_iterator.next()
-
-            if isinstance(batch, slice):
-                length = batch.stop-batch.start
-            else:
-                length = len(batch)
-
-        return batch
-
-
-def as_even(iterator_cls):
-    """
-    Returns a class wrapping iterator_cls that forces equal batch size.
-
-    Parameters
-    ----------
-    iterator_cls : class
-        An iterator class that inherits from SubsetIterator
-
-    Returns
-    -------
-    class
-        An iterator class ForcedEven{put the name of iterator_cls here}, based
-        on ForcedEvenIterator, that wraps iterator_cls.
-    """
-
-    assert issubclass(iterator_cls, SubsetIterator)
-
-    dct = ForcedEvenIterator.__dict__.copy()
-    dct["_base_iterator_cls"] = iterator_cls
-    dct["fancy"] = iterator_cls.fancy
-    dct["stochastic"] = iterator_cls.stochastic
-
-    NewForcedEvenClass = type("ForcedEven%s" % iterator_cls.__name__,
-                              ForcedEvenIterator.__bases__, dct)
-
-    return NewForcedEvenClass
-
-
-class SequentialSubsetIterator(SubsetIterator):
-    """
-    Returns mini-batches proceeding sequentially through the dataset.
-
-    Notes
-    -----
-    Returns slice objects to represent ranges of indices (`fancy = False`).
-
-    See :py:class:`SubsetIterator` for detailed constructor parameter
-    and attribute documentation.
-    """
-
-    def __init__(self, dataset_size, batch_size, num_batches, rng=None):
-        if rng is not None:
-            raise ValueError("non-None rng argument not supported for "
-                             "sequential batch iteration")
-        assert num_batches is None or num_batches >= 0
-        self._dataset_size = dataset_size
-        if batch_size is None:
-            if num_batches is not None:
-                batch_size = int(np.ceil(self._dataset_size / num_batches))
-            else:
-                raise ValueError("need one of batch_size, num_batches "
-                                 "for sequential batch iteration")
-        elif batch_size is not None:
-            if num_batches is not None:
-                max_num_batches = np.ceil(self._dataset_size / batch_size)
-                if num_batches > max_num_batches:
-                    raise ValueError("dataset of %d examples can only provide "
-                                     "%d batches with batch_size %d, but %d "
-                                     "batches were requested" %
-                                     (self._dataset_size, max_num_batches,
-                                      batch_size, num_batches))
-            else:
-                num_batches = np.ceil(self._dataset_size / batch_size)
-        self._batch_size = batch_size
-        self._num_batches = num_batches
-        self._next_batch_no = 0
-        self._idx = 0
-        self._batch = 0
-
-    @wraps(SubsetIterator.next, assigned=(), updated=())
-    def next(self):
-        if self._batch >= self.num_batches or self._idx >= self._dataset_size:
-            raise StopIteration()
-
-        # this fix the problem where dataset_size % batch_size != 0
-        elif (self._idx + self._batch_size) > self._dataset_size:
-            self._last = slice(self._idx, self._dataset_size)
-            self._idx = self._dataset_size
-            return self._last
-
-        else:
-            self._last = slice(self._idx, self._idx + self._batch_size)
-            self._idx += self._batch_size
-            self._batch += 1
-            return self._last
-
-    fancy = False
-    stochastic = False
-    uniform_batch_size = False
-
-    @property
-    @wraps(SubsetIterator.num_examples, assigned=(), updated=())
-    def num_examples(self):
-        product = self.batch_size * self.num_batches
-        return min(product, self._dataset_size)
-
-    @property
-    @wraps(SubsetIterator.uneven, assigned=(), updated=())
-    def uneven(self):
-        return self.batch_size * self.num_batches > self._dataset_size
-
-
-class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
-    """
-    Randomly shuffles the example indices and then proceeds sequentially
-    through the permutation.
-
-    Notes
-    -----
-    Returns lists of indices (`fancy = True`).
-
-    See :py:class:`SubsetIterator` for detailed constructor parameter
-    and attribute documentation.
-    """
-    stochastic = True
-    fancy = True
-    uniform_batch_size = False
-
-    def __init__(self, dataset_size, batch_size, num_batches, rng=None):
-        super(ShuffledSequentialSubsetIterator, self).__init__(
-            dataset_size,
-            batch_size,
-            num_batches,
-            None
-        )
-        self._rng = make_np_rng(rng, which_method=["random_integers",
-                                                   "shuffle"])
-        self._shuffled = np.arange(self._dataset_size)
-        self._rng.shuffle(self._shuffled)
-
-    @wraps(SubsetIterator.next)
-    def next(self):
-        if self._batch >= self.num_batches or self._idx >= self._dataset_size:
-            raise StopIteration()
-
-        # this fix the problem where dataset_size % batch_size != 0
-        elif (self._idx + self._batch_size) > self._dataset_size:
-            rval = self._shuffled[self._idx: self._dataset_size]
-            self._idx = self._dataset_size
-            return rval
-        else:
-            rval = self._shuffled[self._idx: self._idx + self._batch_size]
-            self._idx += self._batch_size
-            self._batch += 1
-            return rval
-
-
 class RandomUniformSubsetIterator(SubsetIterator):
     """
     Selects minibatches of examples by drawing indices uniformly
@@ -484,7 +176,8 @@ class RandomUniformSubsetIterator(SubsetIterator):
     and attribute documentation.
     """
 
-    def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+    def __init__(self, dataset_size, tied_sets, sources, 
+                 batch_size, num_batches, rng=None):
         self._rng = make_np_rng(rng, which_method=["random_integers",
                                                    "shuffle"])
         if batch_size is None:
@@ -493,21 +186,41 @@ class RandomUniformSubsetIterator(SubsetIterator):
         elif num_batches is None:
             raise ValueError("num_batches cannot be None for random uniform "
                              "iteration")
+        for size in dataset_size:
+            assert size >= batch_size
         self._dataset_size = dataset_size
         self._batch_size = batch_size
         self._num_batches = num_batches
         self._next_batch_no = 0
+        self._sources = sources
+        assert len(dataset_size) == len(sources)
+        for item_set in tied_sets:
+            length = dataset_size[sources.index(item_set[0])]
+            for item in item_set:
+                assert length == dataset_size[sources.index(item)]
+        self.set_size = {str(sets): dataset_size[sources.index(sets[0])] 
+                         for sets in tied_sets}
+        self.source_mapping = {}
+        for source in sources:
+            for sets in tied_sets:
+                if source in sets:
+                    self.source_mapping[source] = str(sets)
 
     @wraps(SubsetIterator.next)
     def next(self):
         if self._next_batch_no >= self._num_batches:
             raise StopIteration()
         else:
-            self._last = self._rng.random_integers(low=0,
-                                                   high=self._dataset_size - 1,
-                                                   size=(self._batch_size,))
+            set_indices = {}
+            for sets in self.set_size.keys():
+                set_indices[sets] = self._rng.random_integers(low=0,
+                                       high=self.set_size[sets]-1,
+                                       size=(self._batch_size,))
+            source_indices = {}
+            for source in self._sources:
+                source_indices[source] = set_indices[self.source_mapping[source]]
             self._next_batch_no += 1
-            return self._last
+            return source_indices
 
     fancy = True
     stochastic = True
@@ -527,7 +240,8 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
     and attribute documentation.
     """
 
-    def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+    def __init__(self, dataset_size, tied_sets, sources, 
+                 batch_size, num_batches, rng=None):
         if batch_size is None:
             raise ValueError("batch_size cannot be None for random slice "
                              "iteration")
@@ -535,98 +249,40 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
             raise ValueError("num_batches cannot be None for random slice "
                              "iteration")
         super(RandomSliceSubsetIterator, self).__init__(dataset_size,
+                                                        tied_sets,
+                                                        sources,
                                                         batch_size,
                                                         num_batches, rng)
-        self._last_start = self._dataset_size - self._batch_size
-        if self._last_start < 0:
-            raise ValueError("batch_size > dataset_size not supported for "
-                             "random slice iteration")
+        self._last_start = []
+        for size in self._dataset_size:
+            self._last_start.append(size-self._batch_size)
+        for last_start in self._last_start:
+            if self._last_start < 0:
+                raise ValueError("batch_size > dataset_size not supported for "
+                                 "random slice iteration")
 
     @wraps(SubsetIterator.next)
     def next(self):
         if self._next_batch_no >= self._num_batches:
             raise StopIteration()
         else:
-            start = self._rng.random_integers(low=0, high=self._last_start)
-            self._last = slice(start, start + self._batch_size)
+            set_slices = {}
+            for sets in self.set_size.keys():
+                start = self._rng.random_integers(low=0, high=self.set_size[sets]-self._batch_size)
+                set_slices[sets] = slice(start, start + self._batch_size)
+            source_slices = {}
+            for source in self._sources:
+                source_slices[source] = set_slices[self.source_mapping[source]]
             self._next_batch_no += 1
-            return self._last
+            return source_slices
 
     fancy = False
     stochastic = True
     uniform_batch_size = True
 
-
-class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
-    """
-    Returns minibatches randomly, but sequential inside each minibatch.
-
-    Notes
-    -----
-    Returns slice objects to represent ranges of indices (`fancy = False`).
-
-    See :py:class:`SubsetIterator` for detailed constructor parameter
-    and attribute documentation.
-    """
-
-    def __init__(self, dataset_size, batch_size, num_batches=None, rng=None):
-        self._rng = make_np_rng(rng, which_method=["random_integers",
-                                                   "shuffle"])
-        assert num_batches is None or num_batches >= 0
-        self._dataset_size = dataset_size
-        if batch_size is None:
-            if num_batches is not None:
-                batch_size = int(np.ceil(self._dataset_size / num_batches))
-            else:
-                raise ValueError("need one of batch_size, num_batches "
-                                 "for sequential batch iteration")
-        elif batch_size is not None:
-            if num_batches is not None:
-                max_num_batches = np.ceil(self._dataset_size / batch_size)
-                if num_batches > max_num_batches:
-                    raise ValueError("dataset of %d examples can only provide "
-                                     "%d batches with batch_size %d, but %d "
-                                     "batches were requested" %
-                                     (self._dataset_size, max_num_batches,
-                                      batch_size, num_batches))
-            else:
-                num_batches = np.ceil(self._dataset_size / batch_size)
-
-        self._batch_size = batch_size
-        self._num_batches = int(num_batches)
-        self._next_batch_no = 0
-        self._idx = 0
-        self._batch_order = range(self._num_batches)
-        self._rng.shuffle(self._batch_order)
-
-    @wraps(SubsetIterator.next)
-    def next(self):
-        if self._next_batch_no >= self._num_batches:
-            raise StopIteration()
-        else:
-            start = self._batch_order[self._next_batch_no] * self._batch_size
-            if start + self._batch_size > self._dataset_size:
-                self._last = slice(start, self._dataset_size)
-            else:
-                self._last = slice(start, start + self._batch_size)
-            self._next_batch_no += 1
-            return self._last
-
-    fancy = False
-    stochastic = True
-    uniform_batch_size = False
-
-
 _iteration_schemes = {
-    'sequential': SequentialSubsetIterator,
-    'shuffled_sequential': ShuffledSequentialSubsetIterator,
     'random_slice': RandomSliceSubsetIterator,
     'random_uniform': RandomUniformSubsetIterator,
-    'batchwise_shuffled_sequential': BatchwiseShuffledSequentialIterator,
-    'even_sequential': as_even(SequentialSubsetIterator),
-    'even_shuffled_sequential': as_even(ShuffledSequentialSubsetIterator),
-    'even_batchwise_shuffled_sequential':
-    as_even(BatchwiseShuffledSequentialIterator),
 }
 
 
@@ -763,6 +419,8 @@ class FiniteDatasetIterator(object):
         else:
             assert len(convert) == len(source)
             self._convert = convert
+
+        self._sources = source
         for i, (so, sp, dt) in enumerate(safe_izip(source,
                                                    sub_spaces,
                                                    self._raw_data)):
@@ -825,8 +483,8 @@ class FiniteDatasetIterator(object):
         # using np.take()
 
         rval = tuple(
-            fn(data[next_index]) if fn else data[next_index]
-            for data, fn in safe_izip(self._raw_data, self._convert))
+            fn(data[next_index[source]]) if fn else data[next_index[source]]
+            for data, fn, source in safe_izip(self._raw_data, self._convert, self._source))
         if not self._return_tuple and len(rval) == 1:
             rval, = rval
         return rval
