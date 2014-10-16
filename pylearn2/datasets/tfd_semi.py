@@ -118,7 +118,7 @@ class TFDSemi(SemiSupervised):
                 one_hot = np.zeros((data_y.shape[0], 7))
                 for i in xrange(data_y.shape[0]):
                     one_hot[i, data_y[i]] = 1.
-                data_y = one_hot.astype('float32')
+                data_y = (2.*one_hot-1.).astype('float32')
 
             if shuffle:
                 data_y = data_y[rand_idx_labeled]

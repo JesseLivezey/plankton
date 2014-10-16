@@ -3,7 +3,6 @@
         which_set: 'semisupervised',
         one_hot: True,
         scale: True,
-        center: True,
         shuffle: True
     },
     model: !obj:pylearn2.models.mlp.MLP {
@@ -11,17 +10,24 @@
                          dim: 2304,
         },
         input_source: 'features',
-        layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
+        layers: [ !obj:pylearn2.models.soft_relu.SoftRectifiedLinear {
                      layer_name: 'h0',
                      dim: %(L0dim)i,
                      istdev: %(L0std)f,
                      max_col_norm: %(max_col_norm)f,
                      init_bias: %(init_bias)f,
                      #elbow: 1.,
-                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                 },  !obj:pylearn2.models.soft_relu.SoftRectifiedLinear {
                      layer_name: 'h1',
                      dim: %(L1dim)i,
                      istdev: %(L1std)f,
+                     max_col_norm: %(max_col_norm)f,
+                     init_bias: %(init_bias)f,
+                     #elbow: 1.,
+                 },  !obj:pylearn2.models.soft_relu.SoftRectifiedLinear {
+                     layer_name: 'h2',
+                     dim: %(L2dim)i,
+                     istdev: %(L2std)f,
                      max_col_norm: %(max_col_norm)f,
                      init_bias: %(init_bias)f,
                      #elbow: 1.,
@@ -40,21 +46,28 @@
                                      max_col_norm: %(max_col_norm)f,
                              } ]
                       }
-                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                 },  !obj:pylearn2.models.soft_relu.SoftRectifiedLinear {
+                     layer_name: 'h_3',
+                     dim: %(L_3dim)i,
+                     istdev: %(L_3std)f,
+                     max_col_norm: %(max_col_norm)f,
+                     init_bias: %(init_bias)f,
+                     #elbow: 1.,
+                 },  !obj:pylearn2.models.soft_relu.SoftRectifiedLinear {
                      layer_name: 'h_2',
                      dim: %(L_2dim)i,
                      istdev: %(L_2std)f,
                      max_col_norm: %(max_col_norm)f,
                      init_bias: %(init_bias)f,
                      #elbow: 1.,
-                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                 },  !obj:pylearn2.models.soft_relu.SoftRectifiedLinear {
                      layer_name: 'h_1',
                      dim: %(L_1dim)i,
                      istdev: %(L_1std)f,
                      max_col_norm: %(max_col_norm)f,
                      init_bias: %(init_bias)f,
                      #elbow: 1.,
-                 },  !obj:pylearn2.models.mlp.Linear {
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_0',
                      dim: 2304,
                      istdev: %(L_0std)f,
@@ -64,7 +77,7 @@
                 ],
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-        batch_size: 50,
+        batch_size: 128,
         learning_rate: .000000001,
         train_iteration_mode: 'random_slice',
         batches_per_iter: 500,
@@ -75,15 +88,11 @@
                               which_set: 'valid',
                               one_hot: True,
                               scale: True,
-                              center: True,
                               shuffle: True,
                           },
             },
         monitoring_costs: {'misclass': !obj:pylearn2.costs.mlp.layer_cost.LabelMisclass {
-                              },
-                           'mse': !obj:pylearn2.costs.mlp.layer_cost.AEMSE {
-                              }
-                          },
+                          }},
         monitoring_batches: 1,
         monitoring_batch_size: 428,
         monitor_iteration_mode: 'random_slice',
