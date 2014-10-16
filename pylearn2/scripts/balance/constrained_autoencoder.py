@@ -1,20 +1,20 @@
 from pylearn2.config import yaml_parse
 import numpy as np
-with open('semi.yaml', 'rb') as f:
+with open('tfd.yaml', 'rb') as f:
     train = f.read()
     
 init_alpha = .1
 dim = 2304
 
 init_bias = 0.
-L0dim = 400
-L1dim = 400
-L2dim = 400
-zdim = 393
+L0dim = 2000
+L1dim = 2000
+L2dim = 2000
+zdim = 793
 ydim=7
-L_3dim=1000
-L_2dim=1000
-L_1dim=1000
+L_3dim = 2000
+L_2dim = 2000
+L_1dim = 2000
 max_col_norm = .863105108422
 
 params = {'L0dim': L0dim,

@@ -6,7 +6,7 @@ __authors__ = 'Jesse Livezey'
 import theano
 from theano import tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams
-from theano.tensor.nnet import binary_crossentropy
+from theano.tensor.nnet import categorical_crossentropy
 
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin, NullDataSpecsMixin
 from pylearn2.utils import safe_izip
@@ -44,7 +44,7 @@ class LabelXEnt(DefaultDataSpecsMixin, Cost):
                 composite = layer.raw_layer
                 labeled, unlabeled = composite.layers
                 labeled_act = labeled.fprop(rval)
-                cost = binary_crossentropy(labeled_act, Y).sum()
+                cost = categorical_crossentropy(labeled_act, Y).sum()
                 break
             rval = layer.fprop(rval)
         return cost
@@ -112,7 +112,7 @@ class DropoutLabelXEnt(DefaultDataSpecsMixin, Cost):
             if isinstance(layer, FlattenerLayer):
                 composite = layer.raw_layer
                 labeled, unlabeled = composite.layers
-                labeled_act = model.apply_dropout(
+                rval = model.apply_dropout(
                         state=rval,
                         include_prob=include_prob,
                         theano_rng=theano_rng,
@@ -122,7 +122,7 @@ class DropoutLabelXEnt(DefaultDataSpecsMixin, Cost):
                         per_example=self.per_example
                         )
                 labeled_act = labeled.fprop(rval)
-                cost = binary_crossentropy(labeled_act, Y).sum()
+                cost = categorical_crossentropy(labeled_act, Y).sum()
                 break
             rval = model.apply_dropout(
                     state=rval,
@@ -173,7 +173,7 @@ class LabelMSE(DefaultDataSpecsMixin, Cost):
                 composite = layer.raw_layer
                 labeled, unlabeled = composite.layers
                 labeled_act = labeled.fprop(rval)
-                cost = .5*T.sqr(Y-labeled_act).sum()
+                cost = .5*T.sqr(Y-labeled_act).mean(1).sum()
                 break
             rval = layer.fprop(rval)
         return cost
@@ -241,7 +241,7 @@ class DropoutLabelMSE(DefaultDataSpecsMixin, Cost):
             if isinstance(layer, FlattenerLayer):
                 composite = layer.raw_layer
                 labeled, unlabeled = composite.layers
-                labeled_act = model.apply_dropout(
+                rval = model.apply_dropout(
                         state=rval,
                         include_prob=include_prob,
                         theano_rng=theano_rng,
@@ -251,7 +251,7 @@ class DropoutLabelMSE(DefaultDataSpecsMixin, Cost):
                         per_example=self.per_example
                         )
                 labeled_act = labeled.fprop(rval)
-                cost = .5*T.sqr(Y-labeled_act).sum()
+                cost = .5*T.sqr(Y-labeled_act).mean(1).sum()
                 break
             rval = model.apply_dropout(
                     state=rval,
@@ -295,7 +295,7 @@ class AEMSE(DefaultDataSpecsMixin, Cost):
         space.validate(data)
         X, V = data
         X_hat = model.fprop(X)
-        cost = .5*(T.sqr(V-X_hat).sum())
+        cost = .5*T.sqr(V-X_hat).mean(1).sum()
         cost.name = 'ae_mse'
         return cost
 
@@ -339,7 +339,7 @@ class DropoutAEMSE(DefaultDataSpecsMixin, Cost):
         X_hat = model.dropout_fprop(X, self.default_input_include_prob,
                 self.input_include_probs, self.default_input_scale,
                 self.input_scales, self.per_example)
-        cost = .5*(T.sqr(V-X_hat).sum())
+        cost = .5*T.sqr(V-X_hat).mean(1).sum()
         cost.name = 'dropout_ae_mse'
         return cost
 
@@ -424,7 +424,7 @@ class XCov(DefaultDataSpecsMixin, Cost):
                 labeled_act = labeled_act-labeled_act.mean(axis=0, keepdims=True)
                 unlabeled_act =unlabeled_act-unlabeled_act.mean(axis=0, keepdims=True)
                 cc = T.dot(labeled_act.T, unlabeled_act)/N
-                cost = .5*T.sqr(cc).sum()
+                cost = .5*T.sqr(cc).mean(1).sum()
                 break
             rval = layer.fprop(rval)
         return cost
@@ -488,7 +488,7 @@ class DropoutXCov(DefaultDataSpecsMixin, Cost):
             if isinstance(layer, FlattenerLayer):
                 composite = layer.raw_layer
                 labeled, unlabeled = composite.layers
-                labeled_act = model.apply_dropout(
+                rval = model.apply_dropout(
                         state=rval,
                         include_prob=include_prob,
                         theano_rng=theano_rng,
@@ -503,7 +503,7 @@ class DropoutXCov(DefaultDataSpecsMixin, Cost):
                 labeled_act = labeled_act-labeled_act.mean(axis=0, keepdims=True)
                 unlabeled_act =unlabeled_act-unlabeled_act.mean(axis=0, keepdims=True)
                 cc = T.dot(labeled_act.T, unlabeled_act)/N
-                cost = .5*T.sqr(cc).sum()
+                cost = .5*T.sqr(cc).mean(1).sum()
                 break
             rval = model.apply_dropout(
                     state=rval,
