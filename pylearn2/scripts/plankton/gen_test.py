@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, multiprocessing
 
 if len(sys.argv) < 3:
     print "Usage: python gen_test.py input_folder output_folder"

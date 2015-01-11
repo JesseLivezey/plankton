@@ -1,4 +1,4 @@
-import os, sys, h5py
+import os, sys, h5py, cPickle
 from scipy.ndimage import imread
 import numpy as np
 
@@ -53,3 +53,8 @@ with h5py.File('train.h5','w') as f:
     f.create_dataset('X', data=im_array)
     f.create_dataset('y', data=class_array)
     f.create_dataset('id', data=image_id)
+
+# Pickle class label mapping
+with open('label_mapping.pkl', 'w') as f:
+    cPickle.dump(class_label_dict, f)
+
