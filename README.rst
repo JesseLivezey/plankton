@@ -1,3 +1,23 @@
+===========================
+TODO PLANKTON STUFF
+===========================
+
+- Data augmentation on the fly in pylearn2  (Joe/Jesse)
+    mirror, rotate, etc
+    transformer dataset
+    modify datasets/plankton.py
+    transformer code is in datasets/transformer_dataset.py
+    
+- Run conv net on data (Dylan/Brian)
+    scripts/tutorials
+
+- Semi-supervised learning (Brian/Jesse)
+    Abuse all of the unlabled test data
+
+- Committee of models
+    Different non-linearities, etc
+
+
 ==============================
 Pylearn2: A machine learning research library
 ==============================
