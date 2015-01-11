@@ -9,7 +9,7 @@ import cPickle, h5py, os
 from theano.compat.six.moves import xrange
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.rng import make_np_rng
-
+from pylearn2.utils import serial
 
 class Plankton(dense_design_matrix.DenseDesignMatrix):
     """
@@ -33,6 +33,8 @@ class Plankton(dense_design_matrix.DenseDesignMatrix):
             raise ValueError(
                 'Unrecognized which_set value "%s".' % (which_set,) +
                 '". Valid values are ["train","valid","test"].')
+
+        folder = serial.preprocess(folder)
 
         with open(os.path.join(folder,'label_mapping.pkl'),'r') as f:
             self.label_mapping = cPickle.load(f)
