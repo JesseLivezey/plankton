@@ -1,0 +1,82 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.plankton.Plankton {
+        which_set: 'train',
+        seed: 0,
+        folder: '${PYLEARN2_DATA_PATH}/plankton',
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        input_space: &space !obj:pylearn2.space.Conv2DSpace {
+            shape: [48,48],
+            num_channels: 1,
+        },
+        layers: [
+                !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'h0',
+                     output_channels: 8,
+                     kernel_shape: [4,4],
+                     pool_shape: [3,3],
+                     pool_stride: [2,2],
+                     max_kernel_norm: %(max_col_norm)f,
+                     irange: .1,
+                },
+                !obj:pylearn2.models.mlp.Softmax {
+                     layer_name: 'y',
+                     n_classes: 121,
+                     irange: .0
+                 }
+                ],
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 100,
+        learning_rate: .001,
+        monitoring_dataset:
+            {
+                'train' : *train,
+                'valid' : !obj:pylearn2.datasets.plankton.Plankton {
+                              which_set: 'valid',
+                              seed: 0,
+                              folder: '${PYLEARN2_DATA_PATH}/plankton',
+                          },
+                'test'  : !obj:pylearn2.datasets.plankton.Plankton {
+                              which_set: 'test',
+                              seed: 0,
+                              folder: '${PYLEARN2_DATA_PATH}/plankton',
+                          }
+            },
+        cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
+            !obj:pylearn2.costs.mlp.dropout.Dropout {
+                    input_include_probs: { 'y': .5 },
+                    input_scales: { 'y': 2. },
+            }, !obj:pylearn2.costs.mlp.WeightDecay {
+                    coeffs: { 'y': .00005 }
+            }
+            ]
+        },
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5,
+            nesterov_momentum: True
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.MonitorBased {
+                    channel_name: "valid_y_misclass",
+                    prop_decrease: 0.,
+                    N: 100
+                },
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: 200
+                }
+            ]
+        }
+    },
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'valid_y_misclass',
+             save_path: "plankton_1_layer_dropout.pkl"
+        }, !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            start: 1,
+            saturate: 10,
+            final_momentum: .99
+        }
+    ]
+}
