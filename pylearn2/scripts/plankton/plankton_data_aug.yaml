@@ -1,0 +1,91 @@
+!obj:pylearn2.train.Train {
+    dataset: !obj:pylearn2.datasets.transformer_dataset.TransformerDataset {
+        raw: &train !obj:pylearn2.datasets.plankton.Plankton {
+                which_set: 'train',
+                seed: 0,
+                folder: '${PYLEARN2_DATA_PATH}/plankton/'
+            },
+        transformer: !obj:pylearn2.data_augmentation.DataAugmentation {
+                space: &space !obj:pylearn2.space.Conv2DSpace {
+                        shape: [48,48],
+                        channels: 1,
+                        }
+                },
+        },
+    model: !obj:pylearn2.models.mlp.MLP {
+        input_space: *space,
+        layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h0',
+                     dim: 5000,
+                     istdev: .005
+                 }, !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h1',
+                     dim: 2000,
+                     istdev: .005
+                 }, !obj:pylearn2.models.mlp.Softmax {
+                     layer_name: 'y',
+                     n_classes: 121,
+                     irange: .005
+                 }
+                ],
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 100,
+        learning_rate: .01,
+        monitoring_dataset:
+            {
+                'train' : *train,
+                'valid' : !obj:pylearn2.datasets.plankton.Plankton {
+                              which_set: 'valid',
+                              seed: 0,
+                              folder: '${PYLEARN2_DATA_PATH}/plankton/'
+                          },
+                'test'  : !obj:pylearn2.datasets.plankton.Plankton {
+                              which_set: 'test',
+                              seed: 0,
+                              folder: '${PYLEARN2_DATA_PATH}/plankton/'
+                          }
+            },
+        cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
+            !obj:pylearn2.costs.mlp.dropout.Dropout {
+                    default_input_include_prob: .8,
+                    default_input_scale: 1.25,
+            }, !obj:pylearn2.costs.mlp.WeightDecay {
+                    coeffs: { 'y': .000005,
+                              'h0': .000005,
+                              'h1': .000005 }
+            }
+            ]
+        },
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5,
+            nesterov_momentum: True
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.MonitorBased {
+                    channel_name: "valid_y_nll",
+                    prop_decrease: 0.,
+                    N: 200
+                },
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: 500
+                }
+            ]
+        },
+    update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+        decay_factor: 1.00004,
+        min_lr: .000001
+        },
+    },
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'valid_y_nll',
+             save_path: "plankton_3_layer_dropout_augroll.pkl"
+        }, !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            start: 1,
+            saturate: 100,
+            final_momentum: .99
+        }
+    ]
+}

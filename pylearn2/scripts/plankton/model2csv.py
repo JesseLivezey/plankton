@@ -6,6 +6,8 @@ import numpy as np
 
 import sys, csv
 
+sharpen = 1.
+
 model_path = sys.argv[1]
 data_path = sys.argv[2]
 
@@ -15,9 +17,10 @@ with open(os.path.join(data_path,'label_mapping.pkl'), 'r') as f:
 model = serial.load(model_path)
 train = model.dataset_yaml_src
 ds = yaml_parse.load(train)
-topo_view = ds.unlabeled-ds.feature_mean
-data = topo_view.reshape(-1, 96*96)
-ids = ds.ids_unlabeled
+data = ds.raw.unlabeled-ds.raw.feature_mean
+im_shape = data.shape[1:]
+topo_view = data.reshape(-1, np.prod(im_shape))
+ids = ds.raw.ids_unlabeled
 
 n_examples = topo_view.shape[0]
 
@@ -36,6 +39,8 @@ for ii in xrange(int(n_examples/batch_size)):
 
 batch = data[-leftover:]
 predictions[-leftover:] = pred(batch)
+if sharpen != 1.:
+    predictions = np.power(predictions, sharpen)
 
 with open(os.path.join(data_path,'sampleSubmission.csv'), 'r') as f:
     reader = csv.reader(f)
