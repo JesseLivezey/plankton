@@ -1,0 +1,2 @@
+Unequal height and width of images of the dataset give orientation information, it would good to use the image dimensions as an extra regressor for the network.
+
