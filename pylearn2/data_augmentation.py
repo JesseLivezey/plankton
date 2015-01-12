@@ -12,9 +12,9 @@ class DataAugmentation(Block):
         super(DataAugmentation, self).__init__()
 
     def perform(self, X):
-        if self.rng.rand() >= .5:
-            X = X[:,::-1]
         X = np.transpose(X, axes=(1,2,3,0))
+        if self.rng.rand() >= .5:
+            X = X[::-1]
         k = self.rng.randint(4)
         X = np.rot90(X, k=k)
         axis0 = self.rng.randint(low=-3, high=4)
