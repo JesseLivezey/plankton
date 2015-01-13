@@ -120,7 +120,8 @@ class MonitorBasedSaveBest(TrainExtension):
         `model.tag`. If `None`, use the class name (default).
     """
     def __init__(self, channel_name, save_path=None, store_best_model=False,
-                 higher_is_better=False, tag_key=None):
+                 higher_is_better=False, tag_key=None,
+                 every=1, until=1):
         self.channel_name = channel_name
         assert save_path is not None or store_best_model, (
             "Either save_path must be defined or store_best_model must be " +
@@ -128,6 +129,12 @@ class MonitorBasedSaveBest(TrainExtension):
         self.save_path = save_path
         self.store_best_model = store_best_model
         self.higher_is_better = higher_is_better
+        assert every >= 1
+        assert until >= 1
+        self.every = every
+        self.until = until
+        self.epoch = 0
+        self.saved_ago = 0
         if higher_is_better:
             self.coeff = -1.
         else:
@@ -191,15 +198,20 @@ class MonitorBasedSaveBest(TrainExtension):
         val_record = channel.val_record
         new_cost = val_record[-1]
 
-        if self.coeff * new_cost < self.coeff * self.best_cost:
-            self.best_cost = new_cost
-            # Update the tag of the model object before saving it.
-            self._update_tag(model)
-            if self.store_best_model:
-                self.best_model = deepcopy(model)
-            if self.save_path is not None:
-                with log_timing(log, 'Saving to ' + self.save_path):
-                    serial.save(self.save_path, model, on_overwrite='backup')
+        if self.epoch >= self.until or self.saved_ago > self.every:
+            if self.coeff * new_cost < self.coeff * self.best_cost:
+                self.best_cost = new_cost
+                # Update the tag of the model object before saving it.
+                self._update_tag(model)
+                if self.store_best_model:
+                    self.best_model = deepcopy(model)
+                if self.save_path is not None:
+                    with log_timing(log, 'Saving to ' + self.save_path):
+                        serial.save(self.save_path, model, on_overwrite='backup')
+            self.saved_ago = 0
+        else:
+            self.saved_ago += 1
+        self.epoch += 1
 
     def _update_tag(self, model):
         """

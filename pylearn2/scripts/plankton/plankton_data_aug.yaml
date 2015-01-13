@@ -81,7 +81,9 @@
     extensions: [
         !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
              channel_name: 'valid_y_nll',
-             save_path: "plankton_3_layer_dropout_augroll.pkl"
+             save_path: "plankton_3_layer_dropout_augroll.pkl",
+             every: 5,
+             until: 100,
         }, !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
             start: 1,
             saturate: 100,
