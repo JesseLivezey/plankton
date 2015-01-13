@@ -16,8 +16,8 @@ class DataAugmentation(Block):
         X = np.transpose(X, axes=(1,2,3,0))
         if self.rng.rand() >= .5:
             X = X[::-1]
-        k = 360.*self.rng.rand()
-        X = rotate(X, angle=k, reshape=False)
+        k = self.rng.randint(4)
+        X = np.rot90(X, k=k)
         axis0 = self.rng.randint(low=-3, high=4)
         axis1 = self.rng.randint(low=-3, high=4)
         X = np.roll(X, shift=axis0, axis=0)

@@ -16,11 +16,11 @@
         input_space: *space,
         layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h0',
-                     dim: 5000,
+                     dim: 1000,
                      istdev: .005
                  }, !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h1',
-                     dim: 2000,
+                     dim: 1000,
                      istdev: .005
                  }, !obj:pylearn2.models.mlp.Softmax {
                      layer_name: 'y',
@@ -31,7 +31,7 @@
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         batch_size: 100,
-        learning_rate: .01,
+        learning_rate: .000001,
         monitoring_dataset:
             {
                 'train' : *train,
@@ -57,9 +57,8 @@
             }
             ]
         },
-        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
-            init_momentum: .5,
-            nesterov_momentum: True
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {
+            decay: .95,
         },
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
@@ -73,21 +72,13 @@
                 }
             ]
         },
-    update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
-        decay_factor: 1.00004,
-        min_lr: .000001
-        },
     },
     extensions: [
         !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
              channel_name: 'valid_y_nll',
              save_path: "plankton_3_layer_dropout_augroll.pkl",
-             every: 5,
+             every: 25,
              until: 100,
-        }, !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
-            start: 1,
-            saturate: 100,
-            final_momentum: .99
         }
     ]
 }
