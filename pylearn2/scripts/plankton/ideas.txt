@@ -1,2 +1,7 @@
-Unequal height and width of images of the dataset give orientation information, it would good to use the image dimensions as an extra regressor for the network.
+Unequal height and width of images of the dataset give orientation information, it would good to use the image dimensions as an extra input or regressor for the network.
 
+Plankton labels have two word names (e.g. siphonophore_physonect, siphonophore_pysonect_young), use this information as extra regressor so the network knows to group plankton to macro-labels (i.e siphonophore).
+
+Use compression, original height/width, file date, etc as input features. Might also try as an output regressor, but we have these features on test data too so it makes more sense as an input.
+
+put max_col_norm on Softmax layer, forces activations to drive output probabilities

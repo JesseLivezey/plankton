@@ -7,7 +7,7 @@
             },
         transformer: !obj:pylearn2.data_augmentation.DataAugmentation {
                 space: &space !obj:pylearn2.space.Conv2DSpace {
-                        shape: [48,48],
+                        shape: [96,96],
                         channels: 1,
                         }
                 },
@@ -111,7 +111,7 @@
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         batch_size: 100,
-        learning_rate: .000000001,
+        learning_rate: .0000001,
         monitoring_dataset:
             {
                 'train' : *train,
@@ -138,7 +138,7 @@
             ]
         },
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {
-                decay: .99,
+                decay: .95,
         },
         termination_criterion: !obj:pylearn2.termination_criteria.And {
             criteria: [
