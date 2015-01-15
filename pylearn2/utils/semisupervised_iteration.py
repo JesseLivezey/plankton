@@ -226,6 +226,10 @@ class RandomUniformSubsetIterator(SubsetIterator):
     stochastic = True
     uniform_batch_size = True
 
+    @property
+    def uneven(self):
+        return False
+
 
 class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
     """
@@ -279,6 +283,10 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
     fancy = False
     stochastic = True
     uniform_batch_size = True
+
+    @property
+    def uneven(self):
+        return False
 
 _iteration_schemes = {
     'random_slice': RandomSliceSubsetIterator,

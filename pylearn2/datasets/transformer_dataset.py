@@ -13,6 +13,7 @@ from theano.compat.six import Iterator
 
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import CompositeSpace
+from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
 from pylearn2.utils import wraps
 
@@ -100,12 +101,22 @@ class TransformerDataset(Dataset):
 
             # Put 'features' first, as this is what TransformerIterator
             # is expecting
-            if 'features' not in source:
+            transform = False
+            if hasattr(self.raw, 'conv_sources'):
+                for so in self.raw.conv_sources:
+                    if so in source:
+                        transform = True
+            elif 'features' in source:
+                transform = True
+            if not transform:
                 # 'features is not needed, get things directly from
                 # the original data
                 raw_data_specs = data_specs
             else:
-                feature_idx = source.index('features')
+                if hasattr(self.raw, 'conv_sources'):
+                    features_idx = source.index(self.raw.conv_sources[0])
+                else:
+                    feature_idx = source.index('features')
                 if self.space_preserving:
                     # Ask self.raw for the data in the expected space,
                     # and self.transformer will operate in that space
@@ -113,13 +124,14 @@ class TransformerDataset(Dataset):
                 else:
                     # We need to ask the transformer what its input space is
                     feature_input_space = self.transformer.get_input_space()
-
-                raw_space = CompositeSpace((feature_input_space,)
-                                           + space[:feature_idx]
-                                           + space[feature_idx + 1:])
-                raw_source = (('features',)
-                              + source[:feature_idx]
-                              + source[feature_idx + 1:])
+                if hasattr(self.raw, 'conv_sources'):
+                    raw_space = [feature_input_space if so in
+                            self.raw.conv_sources else sp for sp,so in safe_zip(space, source)]
+                else:
+                    raw_space = [feature_input_space if so == 'features'
+                            else sp for sp,so in safe_zip(space, source)]
+                raw_space = CompositeSpace(raw_space)
+                raw_source = source
                 raw_data_specs = (raw_space, raw_source)
         else:
             raw_data_specs = None
@@ -224,7 +236,8 @@ class TransformerIterator(Iterator):
         # Apply transformation on raw_batch, and format it
         # in the requested Space
         transformer = self.transformer_dataset.transformer
-        out_space = self.data_specs[0]
+        transformer.set_rand()
+        out_space, source = self.data_specs
         if isinstance(out_space, CompositeSpace):
             out_space = out_space.components[0]
 
@@ -246,7 +259,13 @@ class TransformerIterator(Iterator):
             rval = transform(raw_batch)
         else:
             # Apply the transformer only on the first element
-            rval = (transform(raw_batch[0]),) + raw_batch[1:]
+            if hasattr(self.transformer_dataset.raw, 'conv_sources'):
+                rval = tuple([transform(batch) if so in
+                    self.transformer_dataset.raw.conv_sources
+                    else batch for so,batch in safe_zip(source,raw_batch)])
+            else:
+                rval = tuple([transform(batch) if so == 'features'
+                    else batch for so,batch in safe_zip(source,raw_batch)])
 
         return rval
 

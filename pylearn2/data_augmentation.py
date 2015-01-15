@@ -12,16 +12,19 @@ class DataAugmentation(Block):
         self.space = space
         super(DataAugmentation, self).__init__()
 
+    def set_rand(self):
+        self.p = self.rng.rand()
+        self.k = self.rng.randint(4)
+        self.axis0 = self.rng.randint(low=-3, high=4)
+        self.axis1 = self.rng.randint(low=-3, high=4)
+
     def perform(self, X):
         X = np.transpose(X, axes=(1,2,3,0))
-        if self.rng.rand() >= .5:
+        if self.p >= .5:
             X = X[::-1]
-        k = self.rng.randint(4)
-        X = np.rot90(X, k=k)
-        axis0 = self.rng.randint(low=-3, high=4)
-        axis1 = self.rng.randint(low=-3, high=4)
-        X = np.roll(X, shift=axis0, axis=0)
-        X = np.roll(X, shift=axis1, axis=1)
+        X = np.rot90(X, k=self.k)
+        X = np.roll(X, shift=self.axis0, axis=0)
+        X = np.roll(X, shift=self.axis1, axis=1)
         X = np.transpose(X, axes=(3,0,1,2))
         return X
 

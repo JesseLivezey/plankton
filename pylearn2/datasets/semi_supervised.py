@@ -3,6 +3,7 @@ Dataset for training with combination of supervised and unsupervised
 data. Based on the DenseDesignMatrix class.
 """
 __authors__ = "Jesse Livezey"
+
 import functools
 
 import logging
@@ -101,10 +102,11 @@ class SemiSupervised(Dataset):
         self.X_labels = X_labels
         self.y_labels = y_labels
         self._tied_sets = [['features', 'targets'], ['labeled', 'labels']]
+        self.conv_sources = ['features', 'targets', 'labeled']
 
         self._check_labels()
         
-        assert(X.shape[1] == L.shape[1], "Labeled and unlabeled "
+        assert X.shape[1] == L.shape[1], ("Labeled and unlabeled "
                                          "features have different shapes.")
 
         if view_converter is not None:
@@ -194,7 +196,7 @@ class SemiSupervised(Dataset):
 
         convert = []
         for sp, src in safe_zip(sub_spaces, sub_sources):
-            if src == 'features' and \
+            if src in self.conv_sources and \
                getattr(self, 'view_converter', None) is not None:
                 conv_fn = (lambda batch, self=self, space=sp:
                            self.view_converter.get_formatted_batch(batch,
