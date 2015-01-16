@@ -36,14 +36,6 @@
                                      istdev: .005,
                                      } ],
                         },
-                }, !obj:pylearn2.models.mlp.RectifiedLinear {
-                     layer_name: 'h_2',
-                     dim: 50,
-                     istdev: .005
-                 }, !obj:pylearn2.models.mlp.RectifiedLinear {
-                     layer_name: 'h_1',
-                     dim: 50,
-                     istdev: .005
                  }, !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_0',
                      dim: 2304,
