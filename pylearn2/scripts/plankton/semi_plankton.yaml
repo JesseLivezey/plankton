@@ -16,11 +16,11 @@
         input_space: *space,
         layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h0',
-                     dim: 5000,
+                     dim: 1000,
                      istdev: .005
                  }, !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h1',
-                     dim: 2000,
+                     dim: 1000,
                      istdev: .005
         }, !obj:pylearn2.models.mlp.FlattenerLayer {
                 raw_layer: !obj:pylearn2.models.mlp.CompositeLayer {
@@ -32,17 +32,17 @@
                                      },
                                   !obj:pylearn2.models.mlp.Linear {
                                      layer_name: 'z',
-                                     dim: 500,
+                                     dim: 50,
                                      istdev: .005,
                                      } ],
                         },
                 }, !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_2',
-                     dim: 500,
+                     dim: 50,
                      istdev: .005
                  }, !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_1',
-                     dim: 500,
+                     dim: 50,
                      istdev: .005
                  }, !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h_0',
@@ -81,7 +81,7 @@
                     default_input_include_prob: .8,
                     default_input_scale: 1.25,
             }],
-            [1., !obj:pylearn2.costs.mlp.layer_cost.DropoutAEMSE {
+            [0., !obj:pylearn2.costs.mlp.layer_cost.DropoutAEMSE {
                     default_input_include_prob: .8,
                     default_input_scale: 1.25,
             }],
