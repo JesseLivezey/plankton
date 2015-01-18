@@ -47,9 +47,9 @@ class Plankton(dense_design_matrix.DenseDesignMatrix):
         perm = rng.permutation(n_examples)
         topo_view = topo_view[perm]
         y = y[perm]
-        with h5py.File(os.path.join(folder,'test.h5'), 'r') as f:
-            self.unlabeled = f['X'].value[...,np.newaxis]/255.
-            self.ids_unlabeled = f['id'].value
+        # with h5py.File(os.path.join(folder,'test.h5'), 'r') as f:
+        #     self.unlabeled = f['X'].value[...,np.newaxis]/255.
+        #     self.ids_unlabeled = f['id'].value
         split = {'train': .8,
                  'valid': .1,
                  'test': .1}

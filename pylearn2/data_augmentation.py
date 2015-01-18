@@ -22,7 +22,7 @@ class DataAugmentation(Block):
         X = np.transpose(X, axes=(1,2,3,0))
         if self.p >= .5:
             X = X[::-1]
-        X = np.rot90(X, k=self.k)
+        X = np.rot90(X, k=2*self.k)
         X = np.roll(X, shift=self.axis0, axis=0)
         X = np.roll(X, shift=self.axis1, axis=1)
         X = np.transpose(X, axes=(3,0,1,2))
