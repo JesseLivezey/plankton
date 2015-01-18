@@ -2,26 +2,33 @@
     dataset: &train !obj:pylearn2.datasets.plankton.Plankton {
         which_set: 'train',
         seed: 0,
-        folder: '/Users/dpaiton/Google_Drive/School/UCB/Research/plankton/Data/',
+        folder: '$PYLEARN2_DATA_PATH/plankton/'
     },
     model: !obj:pylearn2.models.mlp.MLP {
+        # size of input
         input_space: !obj:pylearn2.space.VectorSpace {
+                # 96 x 96 input
                 dim: 9216,
                 },
         layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h0',
+                     #HYPER_PARAM - hidden layer size
                      dim: 1000,
+                     #INIT_PARAM - range for initial values
                      irange: .0005
                  }, !obj:pylearn2.models.mlp.Softmax {
                      layer_name: 'y',
+                     # Number of labels
                      n_classes: 121,
-                     # Initialization of weights
+                     #INIT_PARAM - Initialization of weights
                      irange: 0.
                  }
                 ],
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        #HYPER_PARAM - how many images to cumulate dw over
         batch_size: 100,
+        #HYPER_PARAM - how stocastic?
         learning_rate: .001,
         monitoring_dataset:
             {
@@ -29,29 +36,31 @@
                 'valid' : !obj:pylearn2.datasets.plankton.Plankton {
                               which_set: 'valid',
                               seed: 0,
-                              folder: '/home/jesse/Development/data/plankton',
+                              folder: '$PYLEARN2_DATA_PATH/plankton',
                           },
                 'test'  : !obj:pylearn2.datasets.plankton.Plankton {
                               which_set: 'test',
                               seed: 0,
-                              folder: '/home/jesse/Development/data/plankton',
+                              folder: '$PYLEARN2_DATA_PATH/plankton',
                           }
             },
         cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
             !obj:pylearn2.costs.mlp.dropout.Dropout {
-                    # probability of staying
+                    # probability of node staying
                     input_include_probs: { 'y': .8,
                                            'h0': .8 },
                     # how much you amplify
                     input_scales: { 'y': 1.25,
                                     'h0': 1.25 },
             }, !obj:pylearn2.costs.mlp.WeightDecay {
+                    # L2 regularization of weights (coeff * sum(sqrt(weights)))
                     coeffs: { 'y': .00005,
                               'h0': .00005 }
             }
             ]
         },
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            #INIT_PARAM - how much momentum to start
             init_momentum: .5,
             nesterov_momentum: True
         },
@@ -59,7 +68,9 @@
             criteria: [
                 !obj:pylearn2.termination_criteria.MonitorBased {
                     channel_name: "valid_y_misclass",
+                    # 0 means stop when its exactly correct
                     prop_decrease: 0.,
+                    # How far back to look for termination criteria
                     N: 100
                 },
                 !obj:pylearn2.termination_criteria.EpochCounter {
@@ -73,8 +84,12 @@
              channel_name: 'valid_nll',
              save_path: "plankton_2_layer_dropout.pkl"
         }, !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
+            #HYPER_PARAM: saturate longer for more gradual change?
+            # When to start growing momentum
             start: 1,
+            # When should momentum reach its final value
             saturate: 10,
+            # Coefficient to use at the end of learning
             final_momentum: .99
         }
     ]
