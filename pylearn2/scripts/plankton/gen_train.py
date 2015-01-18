@@ -3,9 +3,11 @@ import os, sys
 if len(sys.argv) < 3:
     print "Usage: python gen_train.py input_folder output_folder"
     exit(1)
-
 fi = sys.argv[1]
 fo = sys.argv[2]
+
+if not os.path.exists(fo):
+    os.makedirs(fo)
 
 cmd = "convert -resize 48x48\! "
 classes = os.listdir(fi)
