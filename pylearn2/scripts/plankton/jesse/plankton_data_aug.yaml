@@ -20,19 +20,11 @@
                      kernel_shape: [5,5],
                      pool_shape: [3,3],
                      pool_stride: [2,2],
-                     border_mode: 'full',
-                     irange: .005
-                 }, !obj:pylearn2.models.mlp.ConvRectifiedLinear {
-                     layer_name: 'c1',
-                     output_channels: 16,
-                     kernel_shape: [5,5],
-                     pool_shape: [3,3],
-                     pool_stride: [2,2],
                      border_mode: 'valid',
                      irange: .005
                  }, !obj:pylearn2.models.mlp.ConvRectifiedLinear {
-                     layer_name: 'c2',
-                     output_channels: 16,
+                     layer_name: 'c1',
+                     output_channels: 32,
                      kernel_shape: [5,5],
                      pool_shape: [3,3],
                      pool_stride: [2,2],
@@ -50,7 +42,7 @@
         monitoring_batch_size: 100,
         batches_per_iter: 500,
         monitoring_batches: 50,
-        learning_rate: .000001,
+        learning_rate: .00000001,
         train_iteration_mode: 'random_uniform',
         monitor_iteration_mode: 'random_uniform',
         monitoring_dataset:
@@ -73,8 +65,8 @@
                     default_input_scale: 1.25,
             }, !obj:pylearn2.costs.mlp.WeightDecay {
                     coeffs: { 'y': .000005,
-                              'h0': .000005,
-                              'h1': .000005 }
+                              'c0': .000005,
+                              'c1': .000005 }
             }
             ]
         },
