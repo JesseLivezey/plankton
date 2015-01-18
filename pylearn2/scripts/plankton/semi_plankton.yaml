@@ -1,0 +1,115 @@
+!obj:pylearn2.train.Train {
+    dataset: !obj:pylearn2.datasets.transformer_dataset.TransformerDataset {
+        raw: &train !obj:pylearn2.datasets.semi_plankton.SemiPlankton {
+                which_set: 'train',
+                seed: 0,
+                folder: '${PYLEARN2_DATA_PATH}/plankton/'
+            },
+        transformer: !obj:pylearn2.data_augmentation.DataAugmentation {
+                space: &space !obj:pylearn2.space.Conv2DSpace {
+                        shape: [48,48],
+                        channels: 1,
+                        }
+                },
+        },
+    model: !obj:pylearn2.models.encode_decode.EncodeDecode {
+        input_space: *space,
+        layers: [ !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h0',
+                     dim: 1000,
+                     istdev: .005
+                 }, !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h1',
+                     dim: 1000,
+                     istdev: .005
+        }, !obj:pylearn2.models.mlp.FlattenerLayer {
+                raw_layer: !obj:pylearn2.models.mlp.CompositeLayer {
+                        layer_name: 'composite',
+                        layers: [ !obj:pylearn2.models.mlp.Softmax {
+                                     layer_name: 'y',
+                                     n_classes: 121,
+                                     irange: .005
+                                     },
+                                  !obj:pylearn2.models.mlp.Linear {
+                                     layer_name: 'z',
+                                     dim: 50,
+                                     istdev: .005,
+                                     } ],
+                        },
+                 }, !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h_0',
+                     dim: 2304,
+                     istdev: .005
+                }, !obj:pylearn2.models.mlp.SpaceConverter {
+                        layer_name: 'converter',
+                        output_space: *space
+                }
+                ],
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 100,
+        monitoring_batch_size: 100,
+        batches_per_iter: 500,
+        monitoring_batches: 50,
+        learning_rate: .000001,
+        train_iteration_mode: 'random_uniform',
+        monitor_iteration_mode: 'random_uniform',
+        monitoring_dataset:
+            {
+                'train' : *train,
+                'valid' : !obj:pylearn2.datasets.semi_plankton.SemiPlankton {
+                              which_set: 'valid',
+                              seed: 0,
+                              folder: '${PYLEARN2_DATA_PATH}/plankton/'
+                          },
+                'test'  : !obj:pylearn2.datasets.semi_plankton.SemiPlankton {
+                              which_set: 'test',
+                              seed: 0,
+                              folder: '${PYLEARN2_DATA_PATH}/plankton/'
+                          }
+            },
+        cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
+            [1000., !obj:pylearn2.costs.mlp.layer_cost.DropoutLabelXEnt {
+                    default_input_include_prob: .8,
+                    default_input_scale: 1.25,
+            }],
+            [0., !obj:pylearn2.costs.mlp.layer_cost.DropoutAEMSE {
+                    default_input_include_prob: .8,
+                    default_input_scale: 1.25,
+            }],
+            [.01, !obj:pylearn2.costs.mlp.WeightDecay {
+                    coeffs: { 'y': .000005,
+                              'z': .000005,
+                              'h0': .000005,
+                              'h1': .000005,
+                              'h_0': .000005,
+                              'h_1': .000005,
+                              'h_2': .000005 }
+            }]
+            ]
+        },
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {
+            decay: .95,
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.MonitorBased {
+                    channel_name: "valid_nll",
+                    prop_decrease: 0.,
+                    N: 20000
+                },
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: 500
+                }
+            ]
+        },
+    },
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'valid_nll',
+             save_path: "plankton_semi_test.pkl",
+             every: 25,
+             until: 100,
+        }
+    ]
+}

@@ -1,0 +1,162 @@
+!obj:pylearn2.train.Train {
+    dataset: !obj:pylearn2.datasets.transformer_dataset.TransformerDataset {
+        raw: &train !obj:pylearn2.datasets.plankton.Plankton {
+                which_set: 'train',
+                seed: 0,
+                folder: '${PYLEARN2_DATA_PATH}/plankton/'
+            },
+        transformer: !obj:pylearn2.data_augmentation.DataAugmentation {
+                space: &space !obj:pylearn2.space.Conv2DSpace {
+                        shape: [96,96],
+                        channels: 1,
+                        }
+                },
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        input_space: *space,
+        layers: [
+                !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'h0',
+                     output_channels: 48,
+                     kernel_shape: [8,8],
+                     pool_shape: [1,1],
+                     pool_stride: [1,1],
+                     max_kernel_norm: .9,
+                     irange: .1,
+                },
+                !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'h1',
+                     output_channels: 48,
+                     kernel_shape: [1,1],
+                     pool_shape: [1,1],
+                     pool_stride: [1,1],
+                     max_kernel_norm: .9,
+                     irange: .1,
+                },
+                !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'h2',
+                     output_channels: 48,
+                     kernel_shape: [1,1],
+                     pool_shape: [2,2],
+                     pool_stride: [2,2],
+                     max_kernel_norm: .9,
+                     irange: .1,
+                },
+                !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'h3',
+                     output_channels: 48,
+                     kernel_shape: [5,5],
+                     pool_shape: [1,1],
+                     pool_stride: [1,1],
+                     max_kernel_norm: .9,
+                     irange: .1,
+                },
+                !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'h4',
+                     output_channels: 48,
+                     kernel_shape: [1,1],
+                     pool_shape: [1,1],
+                     pool_stride: [1,1],
+                     max_kernel_norm: .9,
+                     irange: .1,
+                },
+                !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'h5',
+                     output_channels: 48,
+                     kernel_shape: [1,1],
+                     pool_shape: [2,2],
+                     pool_stride: [2,2],
+                     max_kernel_norm: .9,
+                     irange: .1,
+                },
+                !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'h6',
+                     output_channels: 48,
+                     kernel_shape: [5,5],
+                     pool_shape: [1,1],
+                     pool_stride: [1,1],
+                     max_kernel_norm: .9,
+                     irange: .1,
+                },
+                !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'h7',
+                     output_channels: 48,
+                     kernel_shape: [1,1],
+                     pool_shape: [1,1],
+                     pool_stride: [1,1],
+                     max_kernel_norm: .9,
+                     irange: .1,
+                },
+                !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'h8',
+                     output_channels: 48,
+                     kernel_shape: [1,1],
+                     pool_shape: [2,2],
+                     pool_stride: [2,2],
+                     max_kernel_norm: .9,
+                     irange: .1,
+                },
+                !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h9',
+                     dim: 1000,
+                     istdev: 1.41421356237,
+                     max_col_norm: .9,
+                },
+                !obj:pylearn2.models.mlp.Softmax {
+                     layer_name: 'y',
+                     n_classes: 121,
+                     irange: .1,
+                }
+                ],
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 100,
+        learning_rate: .0000001,
+        monitoring_dataset:
+            {
+                'train' : *train,
+                'valid' : !obj:pylearn2.datasets.plankton.Plankton {
+                              which_set: 'valid',
+                              seed: 0,
+                              folder: '${PYLEARN2_DATA_PATH}/plankton',
+                          },
+                'test'  : !obj:pylearn2.datasets.plankton.Plankton {
+                              which_set: 'test',
+                              seed: 0,
+                              folder: '${PYLEARN2_DATA_PATH}/plankton',
+                          }
+            },
+        cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
+            !obj:pylearn2.costs.mlp.Default {},
+            # !obj:pylearn2.costs.mlp.dropout.Dropout {
+            #         input_include_probs: { 'y': .5 },
+            #         input_scales: { 'y': 2. },
+            # },
+            # !obj:pylearn2.costs.mlp.WeightDecay {
+            #         coeffs: { 'y': .00005 }
+            # }
+            ]
+        },
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {
+                decay: .95,
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.And {
+            criteria: [
+                !obj:pylearn2.termination_criteria.MonitorBased {
+                    channel_name: "valid_y_nll",
+                    prop_decrease: 0.,
+                    N: 100
+                },
+                !obj:pylearn2.termination_criteria.EpochCounter {
+                    max_epochs: 200
+                }
+            ]
+        }
+    },
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'valid_y_nll',
+             save_path: "plankton_conv_deep.pkl"
+        },
+    ]
+}
