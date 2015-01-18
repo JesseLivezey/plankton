@@ -11,16 +11,15 @@ TODO PLANKTON STUFF
       what else to try?
     * clustering data into the macro categories for classifier
 
-- Work on semi-supervised code
-
 - Run conv net on data 
-    scripts/tutorials
+    * parameter sweep
+    * scripts/tutorials
 
 - Semi-supervised learning 
-    Abuse all of the unlabled test data
+    * Abuse all of the unlabled test data
 
 - Committee of models
-    Different non-linearities, etc
+    * Different non-linearities, etc
 
 
 ==============================
