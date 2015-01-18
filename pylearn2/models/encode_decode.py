@@ -15,6 +15,29 @@ class EncodeDecode(MLP):
             rval = layer.fprop(rval)
         return rval
 
+    def get_encode_input_space(self):
+        return model.get_input_space()
+
+    def decode(self, state_below):
+        rval = state_below
+        begin = False
+        for layer in self.layers:
+            if isinstance(layer, FlattenerLayer):
+                begin = True
+            if begin:
+                rval = layer.fprop(rval)
+        return rval
+
+    def get_decode_input_space(self):
+        begin = False
+        for layer in self.layers:
+            if isinstance(layer, FlattenerLayer):
+                begin = True
+            if begin:
+                space = layer.get_input_space()
+                break
+        return space
+
     def dropout_encode(self, state_below, default_input_include_prob=0.5,
             input_include_probs=None, default_input_scale=2.,
             input_scales=None, per_example=True):
