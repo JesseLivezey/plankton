@@ -2,7 +2,7 @@
     dataset: &train !obj:pylearn2.datasets.plankton.Plankton {
         which_set: 'train',
         seed: 0,
-        folder: '$PYLEARN2_DATA_PATH/plankton/'
+        folder: '${PYLEARN2_DATA_PATH}/plankton/'
     },
     model: !obj:pylearn2.models.mlp.MLP {
         # size of input
@@ -36,12 +36,12 @@
                 'valid' : !obj:pylearn2.datasets.plankton.Plankton {
                               which_set: 'valid',
                               seed: 0,
-                              folder: '$PYLEARN2_DATA_PATH/plankton',
+                              folder: '${PYLEARN2_DATA_PATH}/plankton',
                           },
                 'test'  : !obj:pylearn2.datasets.plankton.Plankton {
                               which_set: 'test',
                               seed: 0,
-                              folder: '$PYLEARN2_DATA_PATH/plankton',
+                              folder: '${PYLEARN2_DATA_PATH}/plankton',
                           }
             },
         cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
