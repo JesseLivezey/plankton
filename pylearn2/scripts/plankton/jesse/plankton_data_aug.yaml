@@ -20,7 +20,6 @@
                      kernel_shape: [5,5],
                      pool_shape: [3,3],
                      pool_stride: [2,2],
-                     border_mode: 'valid',
                      irange: .005
                  }, !obj:pylearn2.models.mlp.ConvRectifiedLinear {
                      layer_name: 'c1',
@@ -28,7 +27,6 @@
                      kernel_shape: [5,5],
                      pool_shape: [3,3],
                      pool_stride: [2,2],
-                     border_mode: 'valid',
                      irange: .005
                  }, !obj:pylearn2.models.mlp.Softmax {
                      layer_name: 'y',
