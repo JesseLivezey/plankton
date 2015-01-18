@@ -2,7 +2,7 @@
     dataset: &train !obj:pylearn2.datasets.plankton.Plankton {
         which_set: 'train',
         seed: 0,
-        folder: '/home/jesse/Development/data/plankton',
+        folder: '/Users/dpaiton/Google_Drive/School/UCB/Research/plankton/Data/',
     },
     model: !obj:pylearn2.models.mlp.MLP {
         input_space: !obj:pylearn2.space.VectorSpace {
@@ -11,6 +11,7 @@
         layers: [ !obj:pylearn2.models.mlp.Softmax {
                      layer_name: 'y',
                      n_classes: 121,
+                     # Initialization of weights
                      irange: .0
                  }
                 ],
@@ -34,8 +35,10 @@
             },
         cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
             !obj:pylearn2.costs.mlp.dropout.Dropout {
-                    input_include_probs: { 'y': .5 },
-                    input_scales: { 'y': 2. },
+                    # probability of staying
+                    input_include_probs: { 'y': .8 },
+                    # how much you amplify
+                    input_scales: { 'y': 1.25 },
             }, !obj:pylearn2.costs.mlp.WeightDecay {
                     coeffs: { 'y': .00005 }
             }
