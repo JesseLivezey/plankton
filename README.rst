@@ -2,16 +2,21 @@
 TODO PLANKTON STUFF
 ===========================
 
-- Data augmentation on the fly in pylearn2  (Joe/Jesse)
-    mirror, rotate, etc
-    transformer dataset
-    modify datasets/plankton.py
-    transformer code is in datasets/transformer_dataset.py
-    
-- Run conv net on data (Dylan/Brian)
+- Data augmentation on the fly in pylearn2  
+    * affine - mirror, rotate, etc
+      What else to try?
+      transformer code is in datasets/transformer_dataset.py
+    * registration
+      3 gaussians
+      what else to try?
+    * clustering data into the macro categories for classifier
+
+- Work on semi-supervised code
+
+- Run conv net on data 
     scripts/tutorials
 
-- Semi-supervised learning (Brian/Jesse)
+- Semi-supervised learning 
     Abuse all of the unlabled test data
 
 - Committee of models
