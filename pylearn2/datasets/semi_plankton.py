@@ -71,8 +71,13 @@ class SemiPlankton(semi_supervised.SemiSupervised):
             y = y[n_train+n_valid:]
         y = y[...,np.newaxis]
 
-        self.feature_mean = train_topo_view.mean(0)
-        topo_view -= self.feature_mean
+        # Invert so background is 0.
+        topo_view = 1.-topo_view
+        unlabeled = 1.-unlabeled
+        
+        # This does not work with data augmentation
+        #self.feature_mean = train_topo_view.mean(0)
+        #topo_view -= self.feature_mean
         y_labels = max(self.label_mapping.values())+1
         axes = ['b',0,1,'c']
         view_converter = dense_design_matrix.DefaultViewConverter(topo_view.shape[1:], axes=axes)
