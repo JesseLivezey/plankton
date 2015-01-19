@@ -3013,17 +3013,16 @@ class ConvElemwise(Layer):
                                    pool_stride=self.pool_stride,
                                    image_shape=self.detector_space.shape,
                                    mode=self.pool_type)
-            else:
-                if self.pool_type == 'max':
-                    dummy_p = max_pool(bc01=dummy_detector,
-                                       pool_shape=self.pool_shape,
-                                       pool_stride=self.pool_stride,
-                                       image_shape=self.detector_space.shape)
-                elif self.pool_type == 'mean':
-                    dummy_p = mean_pool(bc01=dummy_detector,
-                                        pool_shape=self.pool_shape,
-                                        pool_stride=self.pool_stride,
-                                        image_shape=self.detector_space.shape)
+            elif self.pool_type == 'max':
+                dummy_p = max_pool(bc01=dummy_detector,
+                                   pool_shape=self.pool_shape,
+                                   pool_stride=self.pool_stride,
+                                   image_shape=self.detector_space.shape)
+            elif self.pool_type == 'mean':
+                dummy_p = mean_pool(bc01=dummy_detector,
+                                    pool_shape=self.pool_shape,
+                                    pool_stride=self.pool_stride,
+                                    image_shape=self.detector_space.shape)
             dummy_p = dummy_p.eval()
             self.output_space = Conv2DSpace(shape=[dummy_p.shape[2],
                                                    dummy_p.shape[3]],
@@ -3368,6 +3367,8 @@ class ConvRectifiedLinear(ConvElemwise):
 
     kernel_stride : tuple
         The stride of the convolution kernel. A two-tuple of ints.
+    use_dnn_pool : bool
+        Use pooling from cuDNN.
     """
 
     def __init__(self,
@@ -3390,7 +3391,8 @@ class ConvRectifiedLinear(ConvElemwise):
                  detector_normalization=None,
                  output_normalization=None,
                  kernel_stride=(1, 1),
-                 monitor_style="classification"):
+                 monitor_style="classification",
+                 use_dnn_pool=False):
 
         nonlinearity = RectifierConvNonlinearity(left_slope)
 
@@ -3427,7 +3429,8 @@ class ConvRectifiedLinear(ConvElemwise):
                                                   detector_normalization=dn,
                                                   output_normalization=on,
                                                   kernel_stride=kernel_stride,
-                                                  monitor_style=monitor_style)
+                                                  monitor_style=monitor_style,
+                                                  use_dnn_pool=use_dnn_pool)
 
 
 def pool_dnn(bc01, pool_shape, pool_stride, image_shape, mode='max'):
