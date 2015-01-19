@@ -3453,11 +3453,17 @@ def pool_dnn(bc01, pool_shape, pool_stride, image_shape, mode='max'):
     pooled : theano tensor
         The output of pooling applied to `bc01`
     """
+    ob, oc, zero, one = bc01.shape
     mx = None
     r, c = image_shape
     pr, pc = pool_shape
     rs, cs = pool_stride
-
+    dr = int(np.ceil((r-(pr-rs))/float(rs)))
+    dc = int(np.ceil((c-(pc-cs))/float(cs)))
+    ir = dr*rs+(pr-rs)
+    ic = dc*cs+(pc-cs)
+    assert ir >= r
+    assert ic >= c
     assert pr <= r
     assert pc <= c
     assert mode in ['max', 'mean']
@@ -3465,6 +3471,9 @@ def pool_dnn(bc01, pool_shape, pool_stride, image_shape, mode='max'):
     name = bc01.name
     if name is None:
         name = 'anon_bc01'
+    if r != ir and c != ic:
+        padded = T.zeros((ob, oc, ir, ic))
+        bc01 = T.set_subtensor(padded[:,:,:r,:c], bc01)
 
     mx = dnn_pool(bc01, tuple(pool_shape), tuple(pool_stride), mode)
     mx.name = mode+'_pool_dnn(' + name + ')'

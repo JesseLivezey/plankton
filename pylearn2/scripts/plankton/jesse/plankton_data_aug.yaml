@@ -30,14 +30,6 @@
                      pool_stride: [2,2],
                      irange: .005,
                      use_dnn_pool: True
-                 }, !obj:pylearn2.models.mlp.ConvRectifiedLinear {
-                     layer_name: 'c2',
-                     output_channels: 64,
-                     kernel_shape: [3,3],
-                     pool_shape: [3,3],
-                     pool_stride: [2,2],
-                     irange: .005,
-                     use_dnn_pool: True
                  }, !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'f3',
                      dim: 500,
