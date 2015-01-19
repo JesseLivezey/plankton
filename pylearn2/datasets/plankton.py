@@ -47,9 +47,9 @@ class Plankton(dense_design_matrix.DenseDesignMatrix):
         perm = rng.permutation(n_examples)
         topo_view = topo_view[perm]
         y = y[perm]
-        # with h5py.File(os.path.join(folder,'test.h5'), 'r') as f:
-        #     self.unlabeled = f['X'].value[...,np.newaxis]/255.
-        #     self.ids_unlabeled = f['id'].value
+        with h5py.File(os.path.join(folder,'test.h5'), 'r') as f:
+            self.unlabeled = f['X'].value[...,np.newaxis]/255.
+            self.ids_unlabeled = f['id'].value
         split = {'train': .8,
                  'valid': .1,
                  'test': .1}
@@ -71,12 +71,13 @@ class Plankton(dense_design_matrix.DenseDesignMatrix):
             y = y[n_train+n_valid:]
         y = y[...,np.newaxis]
 
-        self.feature_mean = train_topo_view.mean(0)
-        topo_view -= self.feature_mean
+        # Invert so background is 0.
+        topo_view = 1.-topo_view
+
+        # demeaning does not work with augmentation yet
+        # self.feature_mean = train_topo_view.mean(0)
+        # topo_view -= self.feature_mean
         y_labels = max(self.label_mapping.values())+1
-        print which_set
-        print topo_view.shape
-        print y.shape
         axes = ['b',0,1,'c']
         super(Plankton, self).__init__(topo_view=topo_view, y=y,
                                     axes=axes, y_labels=y_labels)

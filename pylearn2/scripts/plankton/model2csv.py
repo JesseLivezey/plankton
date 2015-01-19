@@ -17,7 +17,8 @@ with open(os.path.join(data_path,'label_mapping.pkl'), 'r') as f:
 model = serial.load(model_path)
 train = model.dataset_yaml_src
 ds = yaml_parse.load(train)
-data = ds.raw.unlabeled-ds.raw.feature_mean
+# Mean removed for new augmentation.
+data = ds.raw.unlabeled#-ds.raw.feature_mean
 im_shape = data.shape[1:]
 topo_view = data.reshape(-1, np.prod(im_shape))
 ids = ds.raw.ids_unlabeled
