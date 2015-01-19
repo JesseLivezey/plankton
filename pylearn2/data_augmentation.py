@@ -25,11 +25,17 @@ class DataAugmentation(Block):
         X = np.transpose(X, axes=(1,2,3,0))
         if self.p >= .5:
             X = X[::-1]
-        X = rotate(X, angle=self.deg, order=self.spline_order, cval=self.cval)
+        X = rotate(X,
+                   angle=self.deg,
+                   order=self.spline_order,
+                   cval=self.cval,
+                   reshape=False
+                   )
         X = shift(X,
                   shift=(self.axis0, self.axis1, 0,0),
                   order=self.spline_order,
-                  cval=self.cval)
+                  cval=self.cval
+                  )
         X = np.transpose(X, axes=(3,0,1,2))
         return X
 

@@ -73,9 +73,10 @@ class Plankton(dense_design_matrix.DenseDesignMatrix):
 
         # Invert so background is 0.
         topo_view = 1.-topo_view
+        train_topo_view = 1.-train_topo_view
 
-        # demeaning does not work with augmentation yet
-        # self.feature_mean = train_topo_view.mean(0)
+        # Demeaning does not work with augmentation yet
+        self.feature_mean = train_topo_view.mean(0)
         # topo_view -= self.feature_mean
         y_labels = max(self.label_mapping.values())+1
         axes = ['b',0,1,'c']
