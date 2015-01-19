@@ -92,7 +92,7 @@
     extensions: [
         !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
              channel_name: 'valid_y_nll',
-             save_path: "plankton_data_aug_conv.pkl",
+             save_path: "plankton_data_aug2_conv.pkl",
              every: 25,
              until: 100,
         }
