@@ -72,6 +72,3 @@ with open('submission.csv', 'w') as f:
     for iid,pred in zip(ids,predictions):
         writer.writerow([str(iid)+'.jpg']+list(pred))
 
-
-
-

@@ -16,17 +16,21 @@
         input_space: *space,
         layers: [ !obj:pylearn2.models.mlp.ConvRectifiedLinear {
                      layer_name: 'c0',
-                     output_channels: 16,
+                     output_channels: 32,
                      kernel_shape: [5,5],
                      pool_shape: [3,3],
                      pool_stride: [2,2],
                      irange: .005
                  }, !obj:pylearn2.models.mlp.ConvRectifiedLinear {
                      layer_name: 'c1',
-                     output_channels: 32,
+                     output_channels: 64,
                      kernel_shape: [5,5],
                      pool_shape: [3,3],
                      pool_stride: [2,2],
+                     irange: .005
+                 }, !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'f2',
+                     dim: 500,
                      irange: .005
                  }, !obj:pylearn2.models.mlp.Softmax {
                      layer_name: 'y',
@@ -61,10 +65,11 @@
             !obj:pylearn2.costs.mlp.dropout.Dropout {
                     default_input_include_prob: .8,
                     default_input_scale: 1.25,
-            }, !obj:pylearn2.costs.mlp.WeightDecay {
-                    coeffs: { 'y': .000005,
-                              'c0': .000005,
-                              'c1': .000005 }
+                            #}, !obj:pylearn2.costs.mlp.WeightDecay {
+                            #coeffs: { 'y': .000005,
+                            #'c0': .000005,
+                            #'c1': .000005,
+                            #'f2': .000005 }
             }
             ]
         },

@@ -8,7 +8,7 @@ fi = sys.argv[1]
 fo = sys.argv[2]
 
 # cmd = "convert -resize 48x48\! "
-cmd = "convert -resize 96x96 -gravity center -background white -extent 96x96 "
+cmd = "convert -resize 48x48 -gravity center -background white -extent 48x48 "
 classes = os.listdir(fi)
 
 os.chdir(fo)

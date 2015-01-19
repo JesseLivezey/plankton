@@ -16,14 +16,14 @@
         input_space: *space,
         layers: [ !obj:pylearn2.models.mlp.ConvRectifiedLinear {
                      layer_name: 'c0',
-                     output_channels: 16,
+                     output_channels: 32,
                      kernel_shape: [5,5],
                      pool_shape: [3,3],
                      pool_stride: [2,2],
                      irange: .005
-                 }, !obj:pylearn2.models.mlp.RectifiedLinear {
+                 }, !obj:pylearn2.models.mlp.ConvRectifiedLinear {
                      layer_name: 'c1',
-                     output_channels: 16,
+                     output_channels: 32,
                      kernel_shape: [5,5],
                      pool_shape: [3,3],
                      pool_stride: [2,2],
@@ -38,7 +38,7 @@
                                      },
                                   !obj:pylearn2.models.mlp.Linear {
                                      layer_name: 'z',
-                                     dim: 50,
+                                     dim: 500,
                                      istdev: .005,
                                      } ],
                         },
