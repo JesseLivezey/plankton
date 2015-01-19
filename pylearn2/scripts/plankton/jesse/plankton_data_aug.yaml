@@ -17,19 +17,26 @@
         layers: [ !obj:pylearn2.models.mlp.ConvRectifiedLinear {
                      layer_name: 'c0',
                      output_channels: 32,
-                     kernel_shape: [5,5],
+                     kernel_shape: [3,3],
                      pool_shape: [3,3],
                      pool_stride: [2,2],
                      irange: .005
                  }, !obj:pylearn2.models.mlp.ConvRectifiedLinear {
                      layer_name: 'c1',
                      output_channels: 64,
-                     kernel_shape: [5,5],
+                     kernel_shape: [3,3],
+                     pool_shape: [3,3],
+                     pool_stride: [2,2],
+                     irange: .005
+                 }, !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'c2',
+                     output_channels: 64,
+                     kernel_shape: [3,3],
                      pool_shape: [3,3],
                      pool_stride: [2,2],
                      irange: .005
                  }, !obj:pylearn2.models.mlp.RectifiedLinear {
-                     layer_name: 'f2',
+                     layer_name: 'f3',
                      dim: 500,
                      irange: .005
                  }, !obj:pylearn2.models.mlp.Softmax {
@@ -80,8 +87,8 @@
             criteria: [
                 !obj:pylearn2.termination_criteria.MonitorBased {
                     channel_name: "valid_y_nll",
-                    prop_decrease: 0.,
-                    N: 200
+                    prop_decrease: .1,
+                    N: 100
                 },
                 !obj:pylearn2.termination_criteria.EpochCounter {
                     max_epochs: 500

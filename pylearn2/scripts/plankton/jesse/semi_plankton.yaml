@@ -83,15 +83,6 @@
                     default_input_include_prob: .8,
                     default_input_scale: 1.25,
             }],
-            [.01, !obj:pylearn2.costs.mlp.WeightDecay {
-                    coeffs: { 'y': .000005,
-                              'z': .000005,
-                              'h0': .000005,
-                              'h1': .000005,
-                              'h_0': .000005,
-                              'h_1': .000005,
-                              'h_2': .000005 }
-            }]
             ]
         },
         learning_rule: !obj:pylearn2.training_algorithms.learning_rule.AdaDelta {
@@ -101,8 +92,8 @@
             criteria: [
                 !obj:pylearn2.termination_criteria.MonitorBased {
                     channel_name: "valid_nll",
-                    prop_decrease: 0.,
-                    N: 20000
+                    prop_decrease: .1,
+                    N: 100
                 },
                 !obj:pylearn2.termination_criteria.EpochCounter {
                     max_epochs: 500
