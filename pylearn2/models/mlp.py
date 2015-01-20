@@ -19,6 +19,7 @@ from theano.compat.six.moves import reduce, xrange
 from theano import config
 from theano.gof.op import get_debug_values
 from theano.sandbox.rng_mrg import MRG_RandomStreams
+from theano.sandbox.cuda.dnn import dnn_available, dnn_pool
 from theano.tensor.signal.downsample import max_pool_2d
 import theano.tensor as T
 
@@ -3012,10 +3013,17 @@ class ConvElemwise(Layer):
         if self.pool_type is not None:
             assert self.pool_type in ['max', 'mean']
             if self.pool_type == 'max':
-                dummy_p = max_pool(bc01=dummy_detector,
-                                   pool_shape=self.pool_shape,
-                                   pool_stride=self.pool_stride,
-                                   image_shape=self.detector_space.shape)
+                if dnn_available():
+                    dummy_p = pool_dnn(bc01=dummy_detector,
+                                       pool_shape=self.pool_shape,
+                                       pool_stride=self.pool_stride,
+                                       image_shape=self.detector_space.shape,
+                                       mode=self.pool_type)
+                else:
+                    dummy_p = max_pool(bc01=dummy_detector,
+                                       pool_shape=self.pool_shape,
+                                       pool_stride=self.pool_stride,
+                                       image_shape=self.detector_space.shape)
             elif self.pool_type == 'mean':
                 dummy_p = mean_pool(bc01=dummy_detector,
                                     pool_shape=self.pool_shape,
@@ -3237,9 +3245,16 @@ class ConvElemwise(Layer):
                                                        "pooling.")
 
             if self.pool_type == 'max':
-                p = max_pool(bc01=d, pool_shape=self.pool_shape,
-                             pool_stride=self.pool_stride,
-                             image_shape=self.detector_space.shape)
+                if dnn_available():
+                    p = pool_dnn(bc01=d,
+                                 pool_shape=self.pool_shape,
+                                 pool_stride=self.pool_stride,
+                                 image_shape=self.detector_space.shape,
+                                 mode=self.pool_type)
+                else:
+                    p = max_pool(bc01=d, pool_shape=self.pool_shape,
+                                 pool_stride=self.pool_stride,
+                                 image_shape=self.detector_space.shape)
             elif self.pool_type == 'mean':
                 p = mean_pool(bc01=d, pool_shape=self.pool_shape,
                               pool_stride=self.pool_stride,
@@ -3419,6 +3434,64 @@ class ConvRectifiedLinear(ConvElemwise):
                                                   output_normalization=on,
                                                   kernel_stride=kernel_stride,
                                                   monitor_style=monitor_style)
+
+
+def pool_dnn(bc01, pool_shape, pool_stride, image_shape, mode='max'):
+    """
+    cuDNN pooling op.
+
+    Parameters
+    ----------
+    bc01 : theano tensor
+        Minibatch in format (batch size, channels, rows, cols).
+    pool_shape : tuple
+        Shape of the pool region (rows, cols).
+    pool_stride : tuple
+        Strides between pooling regions (row stride, col stride).
+    image_shape : tuple
+        Avoid doing some of the arithmetic in theano.
+    mode : str
+        Flag for `mean` or `max` pooling.
+
+    Returns
+    -------
+    mx : theano tensor
+        The output of pooling applied to `bc01`.
+    """
+    ob, oc, zero, one = bc01.shape
+    mx = None
+    r, c = image_shape
+    pr, pc = pool_shape
+    rs, cs = pool_stride
+    # Compute number of pools including border.
+    dr = int(np.ceil((r-(pr-rs))/float(rs)))
+    dc = int(np.ceil((c-(pc-cs))/float(cs)))
+    # Padded image size
+    ir = dr*rs+(pr-rs)
+    ic = dc*cs+(pc-cs)
+    assert ir >= r
+    assert ic >= c
+    assert pr <= r
+    assert pc <= c
+    assert mode in ['max', 'mean']
+    if mode == 'mean':
+        raise NotImplementedError('Mean pooling is not implemented '
+                                  'in Pylearn2 using cuDNN as of '
+                                  'January 19th, 2015.')
+
+    name = bc01.name
+    if name is None:
+        name = 'anon_bc01'
+    # If padded image size is different than actual image size
+    # allocate new tensor and fill in with `bc01`.
+    if (r != ir) or (c != ic):
+        padded = T.alloc(T.constant(-np.inf, dtype=config.floatX),
+                         shape=(ob, oc, ir, ic))
+        bc01 = T.set_subtensor(padded[:, :, :r, :c], bc01)
+
+    mx = dnn_pool(bc01, tuple(pool_shape), tuple(pool_stride), mode)
+    mx.name = mode+'_pool_dnn(' + name + ')'
+    return mx
 
 
 def max_pool(bc01, pool_shape, pool_stride, image_shape):
