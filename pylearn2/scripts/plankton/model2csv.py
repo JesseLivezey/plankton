@@ -32,10 +32,12 @@ pred = theano.function([X], pred_symb)
 
 batch_size = 100
 leftover = n_examples % batch_size
+print leftover
 predictions = np.zeros((n_examples,121), dtype='float32')
 
 for ii in xrange(int(n_examples/batch_size)):
     batch = data[ii*batch_size:(ii+1)*batch_size]
+    """
     batch = np.transpose(batch, axes=(1,2,3,0))
     for jj in xrange(2):
         for kk in xrange(4):
@@ -44,18 +46,22 @@ for ii in xrange(int(n_examples/batch_size)):
                 batch_new = batch_new[::-1]
             batch_new = np.rot90(batch_new, k=kk)
             batch_new = np.transpose(batch_new, axes=(3,0,1,2))
-            predictions[ii*batch_size:(ii+1)*batch_size] += pred(batch_new)
+    """
+    predictions[ii*batch_size:(ii+1)*batch_size] = pred(batch)
 
-batch = data[-leftover:]
-batch = np.transpose(batch, axes=(1,2,3,0))
-for jj in xrange(2):
-    for kk in xrange(4):
-        batch_new = batch.copy()
-        if jj == 1:
-            batch_new = batch_new[::-1]
-        batch_new = np.rot90(batch_new, k=kk)
-        batch_new = np.transpose(batch_new, axes=(3,0,1,2))
-        predictions[-leftover:] += pred(batch_new)
+if leftover > 0:
+    batch = data[-leftover:]
+    """
+    #batch = np.transpose(batch, axes=(1,2,3,0))
+    for jj in xrange(2):
+        for kk in xrange(4):
+            batch_new = batch.copy()
+            if jj == 1:
+                batch_new = batch_new[::-1]
+            batch_new = np.rot90(batch_new, k=kk)
+            batch_new = np.transpose(batch_new, axes=(3,0,1,2))
+    """
+    predictions[-leftover:] = pred(batch)
 if sharpen != 1.:
     predictions = np.power(predictions, sharpen)
 

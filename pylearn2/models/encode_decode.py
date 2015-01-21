@@ -1,4 +1,4 @@
-from pylearn2.models.mlp import Layer, MLP, FlattenerLayer
+from pylearn2.models.mlp import Layer, MLP, CompositeLayer
 from pylearn2.utils import wraps
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.compat.python2x import OrderedDict
@@ -8,8 +8,8 @@ class EncodeDecode(MLP):
     def encode(self, state_below):
         rval = state_below
         for layer in self.layers:
-            if isinstance(layer, FlattenerLayer):
-                rvals = tuple([l.fprop(rval) for l in layer.raw_layer.layers])
+            if isinstance(layer, CompositeLayer):
+                rvals = tuple([l.fprop(rval) for l in layer.layers])
                 rval = rvals
                 break
             rval = layer.fprop(rval)
@@ -22,7 +22,7 @@ class EncodeDecode(MLP):
         rval = state_below
         begin = False
         for layer in self.layers:
-            if isinstance(layer, FlattenerLayer):
+            if isinstance(layer, CompositeLayer):
                 begin = True
             if begin:
                 rval = layer.fprop(rval)
@@ -31,7 +31,7 @@ class EncodeDecode(MLP):
     def get_decode_input_space(self):
         begin = False
         for layer in self.layers:
-            if isinstance(layer, FlattenerLayer):
+            if isinstance(layer, CompositeLayer):
                 begin = True
             if begin:
                 space = layer.get_input_space()
@@ -75,8 +75,8 @@ class EncodeDecode(MLP):
                     input_space=layer.get_input_space(),
                     per_example=per_example
                     )
-            if isinstance(layer, FlattenerLayer):
-                rvals = tuple([l.fprop(state_below) for l in layer.raw_layer.layers])
+            if isinstance(layer, CompositeLayer):
+                rvals = tuple([l.fprop(state_below) for l in layer.layers])
                 rval = rvals
             state_below = layer.fprop(state_below)
 
@@ -85,15 +85,15 @@ class EncodeDecode(MLP):
     @property
     def labeled_layer(self):
         for layer in self.layers:
-            if isinstance(layer, FlattenerLayer):
-                labeled, unlabeled = layer.raw_layer.layers
+            if isinstance(layer, CompositeLayer):
+                labeled, unlabeled = layer.layers
                 break
         return labeled
 
     @property
     def unlabeled_layer(self):
         for layer in self.layers:
-            if isinstance(layer, FlattenerLayer):
-                labeled, unlabeled = layer.raw_layer.layers
+            if isinstance(layer, CompositeLayer):
+                labeled, unlabeled = layer.layers
                 break
         return unlabeled

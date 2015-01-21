@@ -18,10 +18,9 @@
                      layer_name: 'c0',
                      output_channels: 64,
                      kernel_shape: [7,7],
-                     pool_shape: [5,5],
-                     pool_stride: [3,3],
+                     pool_shape: [4,4],
+                     pool_stride: [2,2],
                      irange: .005,
-                     use_dnn_pool: True
                  }, !obj:pylearn2.models.mlp.ConvRectifiedLinear {
                      layer_name: 'c1',
                      output_channels: 96,
@@ -29,13 +28,15 @@
                      pool_shape: [4,4],
                      pool_stride: [2,2],
                      irange: .005,
-                     use_dnn_pool: True
+                 }, !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                     layer_name: 'c2',
+                     output_channels: 128,
+                     kernel_shape: [3,3],
+                     pool_shape: [3,3],
+                     pool_stride: [2,2],
+                     irange: .005,
                  }, !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'f3',
-                     dim: 1000,
-                     irange: .005
-                 }, !obj:pylearn2.models.mlp.RectifiedLinear {
-                     layer_name: 'f4',
                      dim: 500,
                      irange: .005
                  }, !obj:pylearn2.models.mlp.Softmax {
