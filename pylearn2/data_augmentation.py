@@ -32,11 +32,6 @@ class DataAugmentation(Block):
                    order=self.spline_order,
                    cval=self.cval,
                    reshape=False)
-        X = zoom(X,
-                 zoom(self.zoom0,
-                      self.zoom1,
-                      order=self.spline_order,
-                      cval=self.cval)
         X = shift(X,
                   shift=(self.axis0, self.axis1, 0,0),
                   order=self.spline_order,
