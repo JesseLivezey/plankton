@@ -72,6 +72,8 @@
             !obj:pylearn2.costs.mlp.dropout.Dropout {
                     default_input_include_prob: .8,
                     default_input_scale: 1.25,
+                    input_include_probs: { 'c0': .5 },
+                    input_scales: { 'c0': 2. }
                             #}, !obj:pylearn2.costs.mlp.WeightDecay {
                             #coeffs: { 'y': .000005,
                             #'c0': .000005,
@@ -88,7 +90,7 @@
                 !obj:pylearn2.termination_criteria.MonitorBased {
                     channel_name: "valid_y_nll",
                     prop_decrease: .1,
-                    N: 100
+                    N: 200
                 },
                 !obj:pylearn2.termination_criteria.EpochCounter {
                     max_epochs: 500
@@ -99,8 +101,8 @@
     extensions: [
         !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
              channel_name: 'valid_y_nll',
-             save_path: "plankton_data_aug2_conv.pkl",
-             every: 10,
+             save_path: "plankton_data_aug2_conv_2.pkl",
+             every: 5,
              until: 100,
         }
     ]
